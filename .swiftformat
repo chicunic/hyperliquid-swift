@@ -1,0 +1,47 @@
+# SwiftFormat Configuration for hyperliquid-swift
+
+# File options
+--exclude .build,Package.swift
+
+# Format options
+--indent 4
+--indentcase false
+--trimwhitespace always
+--voidtype void
+--semicolons never
+--commas always
+--stripunusedargs closure-only
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--closingparen balanced
+--funcattributes prev-line
+--typeattributes prev-line
+--varattributes same-line
+--extensionacl on-declarations
+--patternlet hoist
+--self remove
+--importgrouping alpha
+--operatorfunc spaced
+--nospaceoperators ...,..<
+--ifdef no-indent
+--header strip
+--marktypes never
+--markextensions never
+--typemark "MARK: - %t"
+--extensionmark "MARK: - %t + %c"
+--groupedextension "MARK: %c"
+
+# Enabled rules (default + extras)
+--enable blankLinesBetweenImports
+--enable isEmpty
+--enable markTypes
+--enable sortDeclarations
+--enable wrapEnumCases
+--enable wrapSwitchCases
+
+# Disabled rules
+--disable acronyms
+--disable blankLinesAtStartOfScope
+--disable blankLinesAtEndOfScope
