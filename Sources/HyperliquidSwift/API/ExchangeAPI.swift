@@ -6,7 +6,7 @@ import OrderedCollections
 public actor ExchangeAPI {
     private let httpClient: HTTPClient
     private let network: HyperliquidNetwork
-    private let signer: HyperliquidSigner
+    private let signerType: SignerType
     private var infoAPI: InfoAPI
 
     /// Vault address for trading on behalf of a vault
@@ -21,9 +21,22 @@ public actor ExchangeAPI {
     /// Default slippage for market orders (5%)
     public static let defaultSlippage: Decimal = 0.05
 
-    /// Initialize Exchange API
+    /// Internal enum to distinguish signer types
+    private enum SignerType: Sendable {
+        case hyperliquid(HyperliquidSigner)
+        case eip712(EIP712Signer)
+
+        var address: String {
+            switch self {
+            case let .hyperliquid(signer): signer.address
+            case let .eip712(signer): signer.address
+            }
+        }
+    }
+
+    /// Initialize Exchange API with HyperliquidSigner
     /// - Parameters:
-    ///   - signer: Signer for transaction signing
+    ///   - signer: Signer for transaction signing (signs message hash directly)
     ///   - network: Network to connect to
     ///   - vaultAddress: Optional vault address
     ///   - accountAddress: Optional account address for sub-accounts
@@ -33,7 +46,29 @@ public actor ExchangeAPI {
         vaultAddress: String? = nil,
         accountAddress: String? = nil
     ) async throws {
-        self.signer = signer
+        signerType = .hyperliquid(signer)
+        self.network = network
+        httpClient = HTTPClient(baseURL: network.baseURL)
+        self.vaultAddress = vaultAddress?.normalizedAddress
+        self.accountAddress = accountAddress?.normalizedAddress
+        infoAPI = try await InfoAPI(network: network)
+    }
+
+    /// Initialize Exchange API with EIP712Signer
+    /// Use this initializer for external wallets (Privy, WalletConnect, etc.)
+    /// that need to display the full EIP-712 typed data for user confirmation
+    /// - Parameters:
+    ///   - eip712Signer: Signer for EIP-712 typed data signing
+    ///   - network: Network to connect to
+    ///   - vaultAddress: Optional vault address
+    ///   - accountAddress: Optional account address for sub-accounts
+    public init(
+        eip712Signer: EIP712Signer,
+        network: HyperliquidNetwork = .mainnet,
+        vaultAddress: String? = nil,
+        accountAddress: String? = nil
+    ) async throws {
+        signerType = .eip712(eip712Signer)
         self.network = network
         httpClient = HTTPClient(baseURL: network.baseURL)
         self.vaultAddress = vaultAddress?.normalizedAddress
@@ -123,12 +158,22 @@ public actor ExchangeAPI {
             expiresAfter: expiresAfter
         )
 
-        let messageHash = EIP712.hashTypedDataL1(
-            actionHash: actionHash,
-            isMainnet: isMainnet
-        )
+        switch signerType {
+        case let .hyperliquid(signer):
+            let messageHash = EIP712.hashTypedDataL1(
+                actionHash: actionHash,
+                isMainnet: isMainnet
+            )
+            return try await signer.sign(messageHash: messageHash)
 
-        return try await signer.sign(messageHash: messageHash)
+        case let .eip712(signer):
+            let typedData = EIP712.buildTypedDataL1(
+                actionHash: actionHash,
+                isMainnet: isMainnet
+            )
+            let signatureHex = try await signer.signTypedData(typedData)
+            return try Signature.fromHex(signatureHex)
+        }
     }
 
     /// Sign an L1 action (regular dict version - sorts keys alphabetically)
@@ -140,12 +185,22 @@ public actor ExchangeAPI {
             expiresAfter: expiresAfter
         )
 
-        let messageHash = EIP712.hashTypedDataL1(
-            actionHash: actionHash,
-            isMainnet: isMainnet
-        )
+        switch signerType {
+        case let .hyperliquid(signer):
+            let messageHash = EIP712.hashTypedDataL1(
+                actionHash: actionHash,
+                isMainnet: isMainnet
+            )
+            return try await signer.sign(messageHash: messageHash)
 
-        return try await signer.sign(messageHash: messageHash)
+        case let .eip712(signer):
+            let typedData = EIP712.buildTypedDataL1(
+                actionHash: actionHash,
+                isMainnet: isMainnet
+            )
+            let signatureHex = try await signer.signTypedData(typedData)
+            return try Signature.fromHex(signatureHex)
+        }
     }
 
     /// Sign a user-signed action
@@ -154,14 +209,26 @@ public actor ExchangeAPI {
         signTypes: [TypedVariable],
         primaryType: UserSignedPrimaryType
     ) async throws -> Signature {
-        let messageHash = try EIP712.hashTypedDataUserSigned(
-            action: action,
-            signTypes: signTypes,
-            primaryType: primaryType,
-            isMainnet: isMainnet
-        )
+        switch signerType {
+        case let .hyperliquid(signer):
+            let messageHash = try EIP712.hashTypedDataUserSigned(
+                action: action,
+                signTypes: signTypes,
+                primaryType: primaryType,
+                isMainnet: isMainnet
+            )
+            return try await signer.sign(messageHash: messageHash)
 
-        return try await signer.sign(messageHash: messageHash)
+        case let .eip712(signer):
+            let typedData = EIP712.buildTypedDataUserSigned(
+                action: action,
+                signTypes: signTypes,
+                primaryType: primaryType,
+                isMainnet: isMainnet
+            )
+            let signatureHex = try await signer.signTypedData(typedData)
+            return try Signature.fromHex(signatureHex)
+        }
     }
 
     // MARK: - Order Operations
@@ -749,7 +816,7 @@ public actor ExchangeAPI {
         cloid: Cloid? = nil,
         builder: BuilderInfo? = nil
     ) async throws -> Data {
-        let address = accountAddress ?? vaultAddress ?? signer.address
+        let address = accountAddress ?? vaultAddress ?? signerType.address
 
         let userState = try await infoAPI.userState(address: address)
         guard let position = userState.assetPositions.first(where: { $0.position.coin == coin }) else {

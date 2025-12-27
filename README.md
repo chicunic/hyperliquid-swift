@@ -123,10 +123,55 @@ The SDK uses:
 
 ## Signing
 
-The SDK implements two signing methods matching the Python SDK:
+The SDK supports two signer protocols for different use cases:
 
-1. **L1 Action Signing** - For order operations, uses phantom agent with EIP-712
-2. **User-Signed Action Signing** - For transfers and approvals, uses TypedData EIP-712
+### HyperliquidSigner (Direct Signing)
+
+For direct private key signing where the SDK computes the EIP-712 hash internally. Use `PrivateKeySigner`:
+
+```swift
+let signer = try PrivateKeySigner(privateKeyHex: "0x...")
+let exchange = try await ExchangeAPI(signer: signer, network: .mainnet)
+```
+
+### EIP712Signer (External Wallets)
+
+For external wallets (Privy, WalletConnect, MetaMask, etc.) that need the full EIP-712 typed data to display signing content to users:
+
+```swift
+class MyWalletSigner: EIP712Signer {
+    let address: String = "0x..."
+
+    func signTypedData(_ typedData: EIP712TypedData) async throws -> String {
+        // Pass typedData.toDictionary() to your wallet SDK
+        // Return 0x-prefixed 65-byte signature (r + s + v)
+        return try await walletSDK.signTypedData(typedData.toDictionary())
+    }
+}
+
+let walletSigner = MyWalletSigner()
+let exchange = try await ExchangeAPI(eip712Signer: walletSigner, network: .mainnet)
+```
+
+### Signing File Structure
+
+| File                     | Contents                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `Signer.swift`           | `Signature` struct, `HyperliquidSigner` protocol                                               |
+| `EIP712Signer.swift`     | `EIP712Signer` protocol, `EIP712TypedData`, `EIP712Domain`, `EIP712TypeField`, `SendableValue` |
+| `EIP712.swift`           | EIP-712 hash computation, `buildTypedDataL1()`, `buildTypedDataUserSigned()`                   |
+| `PrivateKeySigner.swift` | `PrivateKeySigner` implementation using secp256k1                                              |
+
+### EIP712TypedData Structure
+
+The `EIP712TypedData` structure contains all information needed for wallet signing:
+
+- `domain`: EIP-712 domain separator (name, version, chainId, verifyingContract)
+- `primaryType`: The primary type name (e.g., "Agent" for L1 actions)
+- `types`: Type definitions for the message
+- `message`: The actual message data to sign
+
+Use `toDictionary()` to convert for JSON serialization when passing to wallet SDKs.
 
 All signatures are verified against the Python SDK test vectors to ensure compatibility.
 

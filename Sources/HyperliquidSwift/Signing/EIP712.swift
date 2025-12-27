@@ -1,10 +1,10 @@
 import Foundation
 
-/// EIP-712 typed data encoding (Python SDK signing.py:184-229)
+/// EIP-712 typed data encoding
 public enum EIP712 {
     // MARK: - Domain Separator
 
-    /// Compute the domain separator hash
+    /// Compute domain separator hash
     public static func domainSeparatorHash(
         name: String,
         version: String,
@@ -25,7 +25,7 @@ public enum EIP712 {
 
     // MARK: - L1 Action Signing
 
-    /// Build the EIP-712 struct hash for L1 actions (Agent type)
+    /// Build EIP-712 struct hash for L1 actions (Agent type)
     public static func hashL1Action(connectionId: Data, isMainnet: Bool) -> Data {
         let source = isMainnet ? "a" : "b"
         let typeHash = hashType("Agent(string source,bytes32 connectionId)")
@@ -38,7 +38,7 @@ public enum EIP712 {
         return encoded.keccak256
     }
 
-    /// Compute the full EIP-712 hash for L1 actions
+    /// Compute full EIP-712 hash for L1 actions
     public static func hashTypedDataL1(actionHash: Data, isMainnet: Bool) -> Data {
         let domainSeparator = domainSeparatorHash(
             name: HyperliquidConstants.L1Domain.name,
@@ -58,7 +58,7 @@ public enum EIP712 {
 
     // MARK: - User-Signed Action Signing
 
-    /// Compute the full EIP-712 hash for user-signed actions
+    /// Compute full EIP-712 hash for user-signed actions
     public static func hashTypedDataUserSigned(
         action: [String: Any],
         signTypes: [TypedVariable],
@@ -69,7 +69,6 @@ public enum EIP712 {
         fullAction["hyperliquidChain"] = isMainnet ? "Mainnet" : "Testnet"
         fullAction["signatureChainId"] = HyperliquidConstants.UserSignedDomain.signatureChainIdHex
 
-        // Build domain separator
         let domainSeparator = domainSeparatorHash(
             name: HyperliquidConstants.UserSignedDomain.name,
             version: HyperliquidConstants.UserSignedDomain.version,
@@ -77,10 +76,8 @@ public enum EIP712 {
             verifyingContract: HyperliquidConstants.UserSignedDomain.verifyingContract
         )
 
-        // Build struct hash
         let structHash = try hashStruct(primaryType: primaryType.rawValue, data: fullAction, types: signTypes)
 
-        // Combine: 0x19 0x01 ‖ domainSeparator ‖ structHash
         var message = Data([0x19, 0x01])
         message.append(domainSeparator)
         message.append(structHash)
@@ -96,14 +93,12 @@ public enum EIP712 {
         data: [String: Any],
         types: [TypedVariable]
     ) throws -> Data {
-        // Build type string: "PrimaryType(type1 name1,type2 name2,...)"
         let typeString = buildTypeString(primaryType: primaryType, types: types)
         let typeHash = hashType(typeString)
 
         var encoded = Data()
         encoded.append(typeHash)
 
-        // Encode each field in order (only fields defined in types)
         for field in types {
             let value = data[field.name]
             let encodedValue = try encodeValue(value: value, type: field.type)
@@ -113,13 +108,13 @@ public enum EIP712 {
         return encoded.keccak256
     }
 
-    /// Build EIP-712 type string
+    /// Build EIP-712 type string: "PrimaryType(type1 name1,type2 name2,...)"
     private static func buildTypeString(primaryType: String, types: [TypedVariable]) -> String {
         let fields = types.map { "\($0.type) \($0.name)" }.joined(separator: ",")
         return "\(primaryType)(\(fields))"
     }
 
-    /// Encode a value according to its EIP-712 type
+    /// Encode value according to its EIP-712 type
     private static func encodeValue(value: Any?, type: String) throws -> Data {
         guard let value else {
             return Data(repeating: 0, count: 32)
@@ -206,5 +201,118 @@ public enum EIP712 {
     /// Construct a phantom agent for L1 signing
     public static func constructPhantomAgent(source: String, connectionId: Data) -> [String: Any] {
         ["source": source, "connectionId": connectionId]
+    }
+
+    // MARK: - EIP712TypedData Builders
+
+    /// EIP712Domain type fields
+    private static let eip712DomainTypeFields: [EIP712TypeField] = [
+        EIP712TypeField(name: "name", type: "string"),
+        EIP712TypeField(name: "version", type: "string"),
+        EIP712TypeField(name: "chainId", type: "uint256"),
+        EIP712TypeField(name: "verifyingContract", type: "address"),
+    ]
+
+    /// Build EIP712TypedData for L1 actions (Agent type)
+    public static func buildTypedDataL1(actionHash: Data, isMainnet: Bool) -> EIP712TypedData {
+        let source = isMainnet ? "a" : "b"
+
+        let domain = EIP712Domain(
+            name: HyperliquidConstants.L1Domain.name,
+            version: HyperliquidConstants.L1Domain.version,
+            chainId: HyperliquidConstants.L1Domain.chainId,
+            verifyingContract: HyperliquidConstants.L1Domain.verifyingContract
+        )
+
+        let agentTypeFields: [EIP712TypeField] = [
+            EIP712TypeField(name: "source", type: "string"),
+            EIP712TypeField(name: "connectionId", type: "bytes32"),
+        ]
+
+        let types: [String: [EIP712TypeField]] = [
+            "EIP712Domain": eip712DomainTypeFields,
+            "Agent": agentTypeFields,
+        ]
+
+        let message: [String: SendableValue] = [
+            "source": .string(source),
+            "connectionId": .data(actionHash.leftPadded(to: 32)),
+        ]
+
+        return EIP712TypedData(
+            domain: domain,
+            primaryType: "Agent",
+            types: types,
+            message: message
+        )
+    }
+
+    /// Build EIP712TypedData for user-signed actions
+    public static func buildTypedDataUserSigned(
+        action: [String: Any],
+        signTypes: [TypedVariable],
+        primaryType: UserSignedPrimaryType,
+        isMainnet: Bool
+    ) -> EIP712TypedData {
+        let domain = EIP712Domain(
+            name: HyperliquidConstants.UserSignedDomain.name,
+            version: HyperliquidConstants.UserSignedDomain.version,
+            chainId: HyperliquidConstants.UserSignedDomain.signatureChainId,
+            verifyingContract: HyperliquidConstants.UserSignedDomain.verifyingContract
+        )
+
+        // signatureChainId is added to message but NOT to type definition
+        let typeFields: [EIP712TypeField] = signTypes.map {
+            EIP712TypeField(name: $0.name, type: $0.type)
+        }
+
+        let types: [String: [EIP712TypeField]] = [
+            "EIP712Domain": eip712DomainTypeFields,
+            primaryType.rawValue: typeFields,
+        ]
+
+        var message: [String: SendableValue] = [:]
+        message["hyperliquidChain"] = .string(isMainnet ? "Mainnet" : "Testnet")
+
+        for field in signTypes {
+            if field.name == "hyperliquidChain" { continue }
+            if let value = action[field.name] {
+                message[field.name] = convertToSendableValue(value, type: field.type)
+            }
+        }
+
+        message["signatureChainId"] = .string(HyperliquidConstants.UserSignedDomain.signatureChainIdHex)
+
+        return EIP712TypedData(
+            domain: domain,
+            primaryType: primaryType.rawValue,
+            types: types,
+            message: message
+        )
+    }
+
+    /// Convert value to SendableValue based on EIP-712 type
+    private static func convertToSendableValue(_ value: Any, type: String) -> SendableValue {
+        switch type {
+        case "string": if let s = value as? String { return .string(s) }
+        case "address": if let s = value as? String { return .string(s) }
+        case "bool": if let b = value as? Bool { return .bool(b) }
+        case "uint64":
+            if let u = value as? UInt64 { return .uint64(u) }
+            if let i = value as? Int64 { return .int64(i) }
+            if let i = value as? Int { return .int(i) }
+        case "uint256":
+            if let u = value as? UInt64 { return .uint64(u) }
+            if let s = value as? String { return .string(s) }
+        case "bytes32": if let d = value as? Data { return .data(d) }
+        default: break
+        }
+        if let s = value as? String { return .string(s) }
+        if let i = value as? Int { return .int(i) }
+        if let i = value as? Int64 { return .int64(i) }
+        if let u = value as? UInt64 { return .uint64(u) }
+        if let b = value as? Bool { return .bool(b) }
+        if let d = value as? Data { return .data(d) }
+        return .string(String(describing: value))
     }
 }

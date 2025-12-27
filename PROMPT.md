@@ -77,9 +77,13 @@ let client = HyperliquidClient(network: .mainnet)
 // With private key
 let client = try HyperliquidClient(network: .mainnet, privateKey: "0x...")
 
-// With custom signer
+// With custom signer (PrivateKeySigner)
 let signer = try PrivateKeySigner(privateKeyHex: "0x...")
 let client = HyperliquidClient(network: .mainnet, signer: signer)
+
+// With EIP712Signer (for external wallets like Privy, WalletConnect)
+let walletSigner = MyWalletSigner()  // implements EIP712Signer
+let exchange = try await ExchangeAPI(eip712Signer: walletSigner, network: .mainnet)
 
 // Convenience constructors
 let mainnet = HyperliquidClient.mainnet
@@ -89,12 +93,12 @@ let mainnetWithKey = try HyperliquidClient.mainnet(privateKey: "0x...")
 
 ### Properties & Methods
 
-| Method | Description |
-|--------|-------------|
-| `infoAPI() async throws -> InfoAPI` | Create InfoAPI with metadata loading |
-| `simpleInfoAPI() -> InfoAPI` | Create InfoAPI without metadata |
+| Method                                                                  | Description                          |
+| ----------------------------------------------------------------------- | ------------------------------------ |
+| `infoAPI() async throws -> InfoAPI`                                     | Create InfoAPI with metadata loading |
+| `simpleInfoAPI() -> InfoAPI`                                            | Create InfoAPI without metadata      |
 | `exchangeAPI(vaultAddress:accountAddress:) async throws -> ExchangeAPI` | Create ExchangeAPI (requires signer) |
-| `walletAddress: String?` | Get configured wallet address |
+| `walletAddress: String?`                                                | Get configured wallet address        |
 
 ---
 
@@ -104,56 +108,56 @@ Actor for read-only queries. All methods are `async throws`.
 
 ### Market Data
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `allMids(dex:)` | `dex: String = ""` | `[String: String]` | All mid prices |
-| `meta(dex:)` | `dex: String = ""` | `Meta` | Perpetual metadata |
-| `spotMeta()` | - | `SpotMeta` | Spot metadata |
-| `metaAndAssetCtxs()` | - | `MetaAndAssetCtxs` | Perp metadata + contexts |
-| `spotMetaAndAssetCtxs()` | - | `SpotMetaAndAssetCtxs` | Spot metadata + contexts |
-| `l2Snapshot(name:)` | `name: String` | `L2Book` | Order book snapshot |
-| `candlesSnapshot(name:interval:startTime:endTime:)` | coin, interval, timestamps | `[Candle]` | OHLCV candles |
-| `fundingHistory(name:startTime:endTime:)` | coin, timestamps | `[FundingHistoryEntry]` | Funding rate history |
+| Method                                              | Parameters                 | Returns                 | Description              |
+| --------------------------------------------------- | -------------------------- | ----------------------- | ------------------------ |
+| `allMids(dex:)`                                     | `dex: String = ""`         | `[String: String]`      | All mid prices           |
+| `meta(dex:)`                                        | `dex: String = ""`         | `Meta`                  | Perpetual metadata       |
+| `spotMeta()`                                        | -                          | `SpotMeta`              | Spot metadata            |
+| `metaAndAssetCtxs()`                                | -                          | `MetaAndAssetCtxs`      | Perp metadata + contexts |
+| `spotMetaAndAssetCtxs()`                            | -                          | `SpotMetaAndAssetCtxs`  | Spot metadata + contexts |
+| `l2Snapshot(name:)`                                 | `name: String`             | `L2Book`                | Order book snapshot      |
+| `candlesSnapshot(name:interval:startTime:endTime:)` | coin, interval, timestamps | `[Candle]`              | OHLCV candles            |
+| `fundingHistory(name:startTime:endTime:)`           | coin, timestamps           | `[FundingHistoryEntry]` | Funding rate history     |
 
 ### User Account
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `userState(address:dex:)` | address, dex | `UserState` | Perp account state |
-| `spotUserState(address:)` | address | `SpotUserState` | Spot account state |
-| `openOrders(address:dex:)` | address, dex | `[OpenOrder]` | Open orders |
-| `frontendOpenOrders(address:dex:)` | address, dex | `[FrontendOpenOrder]` | Open orders with extra info |
-| `userFills(address:)` | address | `[Fill]` | Trade history |
-| `userFillsByTime(address:startTime:endTime:aggregateByTime:)` | address, timestamps | `[Fill]` | Fills by time range |
-| `userFundingHistory(user:startTime:endTime:)` | user, timestamps | `[UserFunding]` | User funding history |
-| `userFees(address:)` | address | `UserFees` | Fee rates and volume |
-| `queryOrderByOid(user:oid:)` | user, order ID | `OrderStatus` | Query order by ID |
-| `queryOrderByCloid(user:cloid:)` | user, client order ID | `OrderStatus` | Query order by CLOID |
-| `historicalOrders(user:)` | user | `[HistoricalOrder]` | Order history |
-| `userNonFundingLedgerUpdates(user:startTime:endTime:)` | user, timestamps | `[LedgerUpdate]` | Ledger updates |
-| `userTwapSliceFills(user:)` | user | `[TwapSliceFill]` | TWAP fills |
-| `userVaultEquities(user:)` | user | `[VaultEquity]` | Vault positions |
-| `userRole(user:)` | user | `UserRole` | Account type info |
-| `userRateLimit(user:)` | user | `UserRateLimit` | Rate limit status |
+| Method                                                        | Parameters            | Returns               | Description                 |
+| ------------------------------------------------------------- | --------------------- | --------------------- | --------------------------- |
+| `userState(address:dex:)`                                     | address, dex          | `UserState`           | Perp account state          |
+| `spotUserState(address:)`                                     | address               | `SpotUserState`       | Spot account state          |
+| `openOrders(address:dex:)`                                    | address, dex          | `[OpenOrder]`         | Open orders                 |
+| `frontendOpenOrders(address:dex:)`                            | address, dex          | `[FrontendOpenOrder]` | Open orders with extra info |
+| `userFills(address:)`                                         | address               | `[Fill]`              | Trade history               |
+| `userFillsByTime(address:startTime:endTime:aggregateByTime:)` | address, timestamps   | `[Fill]`              | Fills by time range         |
+| `userFundingHistory(user:startTime:endTime:)`                 | user, timestamps      | `[UserFunding]`       | User funding history        |
+| `userFees(address:)`                                          | address               | `UserFees`            | Fee rates and volume        |
+| `queryOrderByOid(user:oid:)`                                  | user, order ID        | `OrderStatus`         | Query order by ID           |
+| `queryOrderByCloid(user:cloid:)`                              | user, client order ID | `OrderStatus`         | Query order by CLOID        |
+| `historicalOrders(user:)`                                     | user                  | `[HistoricalOrder]`   | Order history               |
+| `userNonFundingLedgerUpdates(user:startTime:endTime:)`        | user, timestamps      | `[LedgerUpdate]`      | Ledger updates              |
+| `userTwapSliceFills(user:)`                                   | user                  | `[TwapSliceFill]`     | TWAP fills                  |
+| `userVaultEquities(user:)`                                    | user                  | `[VaultEquity]`       | Vault positions             |
+| `userRole(user:)`                                             | user                  | `UserRole`            | Account type info           |
+| `userRateLimit(user:)`                                        | user                  | `UserRateLimit`       | Rate limit status           |
 
 ### Staking
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `userStakingSummary(address:)` | address | `StakingSummary` | Staking summary |
-| `delegatorSummary(address:)` | address | `StakingSummary` | Alias for above |
-| `userStakingDelegations(address:)` | address | `[StakingDelegation]` | Delegation list |
-| `userStakingRewards(address:)` | address | `[StakingReward]` | Reward history |
-| `delegatorHistory(user:)` | user | `[DelegatorHistoryEntry]` | Delegation history |
+| Method                             | Parameters | Returns                   | Description        |
+| ---------------------------------- | ---------- | ------------------------- | ------------------ |
+| `userStakingSummary(address:)`     | address    | `StakingSummary`          | Staking summary    |
+| `delegatorSummary(address:)`       | address    | `StakingSummary`          | Alias for above    |
+| `userStakingDelegations(address:)` | address    | `[StakingDelegation]`     | Delegation list    |
+| `userStakingRewards(address:)`     | address    | `[StakingReward]`         | Reward history     |
+| `delegatorHistory(user:)`          | user       | `[DelegatorHistoryEntry]` | Delegation history |
 
 ### Other
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `queryReferralState(user:)` | user | `ReferralState` | Referral info |
-| `querySubAccounts(user:)` | user | `[SubAccount]` | Sub accounts |
-| `extraAgents(user:)` | user | `[ExtraAgent]` | Approved agents |
-| `nameToAsset(name:)` | name | `Int?` | Convert coin name to asset ID |
+| Method                      | Parameters | Returns         | Description                   |
+| --------------------------- | ---------- | --------------- | ----------------------------- |
+| `queryReferralState(user:)` | user       | `ReferralState` | Referral info                 |
+| `querySubAccounts(user:)`   | user       | `[SubAccount]`  | Sub accounts                  |
+| `extraAgents(user:)`        | user       | `[ExtraAgent]`  | Approved agents               |
+| `nameToAsset(name:)`        | name       | `Int?`          | Convert coin name to asset ID |
 
 ### WebSocket Subscriptions
 
@@ -173,6 +177,7 @@ await info.disconnectWebSocket()
 ```
 
 **Subscription Types:**
+
 - `.allMids` - All mid prices
 - `.l2Book(coin:)` - Order book
 - `.trades(coin:)` - Trades
@@ -190,54 +195,54 @@ Actor for trading operations. Requires signer. All methods are `async throws` an
 
 ### Order Operations
 
-| Method | Parameters | Description |
-|--------|------------|-------------|
-| `order(coin:isBuy:sz:limitPx:orderType:reduceOnly:cloid:builder:)` | order params | Place single order |
-| `bulkOrders(orders:builder:grouping:)` | `[OrderRequest]`, builder, grouping | Place multiple orders |
-| `modifyOrder(oid:coin:isBuy:sz:limitPx:orderType:reduceOnly:cloid:)` | order ID + new params | Modify order |
-| `bulkModifyOrders(modifies:)` | `[ModifyRequest]` | Modify multiple orders |
-| `cancel(coin:oid:)` | coin, order ID | Cancel order |
-| `bulkCancel(cancels:)` | `[CancelRequest]` | Cancel multiple orders |
-| `cancelByCloid(coin:cloid:)` | coin, client order ID | Cancel by CLOID |
-| `bulkCancelByCloid(cancels:)` | `[CancelByCloidRequest]` | Cancel multiple by CLOID |
-| `scheduleCancel(time:)` | timestamp or nil | Schedule cancel all |
+| Method                                                               | Parameters                          | Description              |
+| -------------------------------------------------------------------- | ----------------------------------- | ------------------------ |
+| `order(coin:isBuy:sz:limitPx:orderType:reduceOnly:cloid:builder:)`   | order params                        | Place single order       |
+| `bulkOrders(orders:builder:grouping:)`                               | `[OrderRequest]`, builder, grouping | Place multiple orders    |
+| `modifyOrder(oid:coin:isBuy:sz:limitPx:orderType:reduceOnly:cloid:)` | order ID + new params               | Modify order             |
+| `bulkModifyOrders(modifies:)`                                        | `[ModifyRequest]`                   | Modify multiple orders   |
+| `cancel(coin:oid:)`                                                  | coin, order ID                      | Cancel order             |
+| `bulkCancel(cancels:)`                                               | `[CancelRequest]`                   | Cancel multiple orders   |
+| `cancelByCloid(coin:cloid:)`                                         | coin, client order ID               | Cancel by CLOID          |
+| `bulkCancelByCloid(cancels:)`                                        | `[CancelByCloidRequest]`            | Cancel multiple by CLOID |
+| `scheduleCancel(time:)`                                              | timestamp or nil                    | Schedule cancel all      |
 
 ### Market Orders (Convenience)
 
-| Method | Parameters | Description |
-|--------|------------|-------------|
-| `marketOpen(coin:isBuy:sz:px:slippage:cloid:builder:)` | coin, direction, size, optional price | Open market position |
-| `marketClose(coin:sz:px:slippage:cloid:builder:)` | coin, optional size, optional price | Close market position |
+| Method                                                 | Parameters                            | Description           |
+| ------------------------------------------------------ | ------------------------------------- | --------------------- |
+| `marketOpen(coin:isBuy:sz:px:slippage:cloid:builder:)` | coin, direction, size, optional price | Open market position  |
+| `marketClose(coin:sz:px:slippage:cloid:builder:)`      | coin, optional size, optional price   | Close market position |
 
 ### Account Operations
 
-| Method | Parameters | Description |
-|--------|------------|-------------|
-| `updateLeverage(leverage:coin:isCross:)` | leverage, coin, cross/isolated | Update leverage |
-| `updateIsolatedMargin(amount:coin:)` | amount, coin | Adjust isolated margin |
-| `setReferrer(code:)` | referral code | Set referrer |
-| `createSubAccount(name:)` | name | Create sub-account |
+| Method                                   | Parameters                     | Description            |
+| ---------------------------------------- | ------------------------------ | ---------------------- |
+| `updateLeverage(leverage:coin:isCross:)` | leverage, coin, cross/isolated | Update leverage        |
+| `updateIsolatedMargin(amount:coin:)`     | amount, coin                   | Adjust isolated margin |
+| `setReferrer(code:)`                     | referral code                  | Set referrer           |
+| `createSubAccount(name:)`                | name                           | Create sub-account     |
 
 ### Transfer Operations
 
-| Method | Parameters | Description |
-|--------|------------|-------------|
-| `usdTransfer(amount:destination:)` | amount, address | Transfer USDC |
-| `spotTransfer(amount:destination:token:)` | amount, address, token | Transfer spot token |
-| `usdClassTransfer(amount:toPerp:)` | amount, direction | Transfer between perp/spot |
-| `subAccountTransfer(subAccountUser:isDeposit:usd:)` | sub-account, direction, amount | Sub-account USD transfer |
-| `subAccountSpotTransfer(subAccountUser:isDeposit:token:amount:)` | sub-account, direction, token, amount | Sub-account spot transfer |
-| `vaultUsdTransfer(vaultAddress:isDeposit:usd:)` | vault, direction, amount | Vault USD transfer |
-| `withdrawFromBridge(amount:destination:)` | amount, address | Bridge withdrawal |
-| `sendAsset(destination:sourceDex:destinationDex:token:amount:)` | addresses, token, amount | Cross-DEX transfer |
+| Method                                                           | Parameters                            | Description                |
+| ---------------------------------------------------------------- | ------------------------------------- | -------------------------- |
+| `usdTransfer(amount:destination:)`                               | amount, address                       | Transfer USDC              |
+| `spotTransfer(amount:destination:token:)`                        | amount, address, token                | Transfer spot token        |
+| `usdClassTransfer(amount:toPerp:)`                               | amount, direction                     | Transfer between perp/spot |
+| `subAccountTransfer(subAccountUser:isDeposit:usd:)`              | sub-account, direction, amount        | Sub-account USD transfer   |
+| `subAccountSpotTransfer(subAccountUser:isDeposit:token:amount:)` | sub-account, direction, token, amount | Sub-account spot transfer  |
+| `vaultUsdTransfer(vaultAddress:isDeposit:usd:)`                  | vault, direction, amount              | Vault USD transfer         |
+| `withdrawFromBridge(amount:destination:)`                        | amount, address                       | Bridge withdrawal          |
+| `sendAsset(destination:sourceDex:destinationDex:token:amount:)`  | addresses, token, amount              | Cross-DEX transfer         |
 
 ### Staking & Agent Operations
 
-| Method | Parameters | Description |
-|--------|------------|-------------|
-| `tokenDelegate(validator:wei:isUndelegate:)` | validator, amount, direction | Delegate/undelegate |
-| `approveAgent(agentAddress:agentName:)` | agent address, optional name | Approve trading agent |
-| `approveBuilderFee(builder:maxFeeRate:)` | builder address, max fee | Approve builder fee |
+| Method                                       | Parameters                   | Description           |
+| -------------------------------------------- | ---------------------------- | --------------------- |
+| `tokenDelegate(validator:wei:isUndelegate:)` | validator, amount, direction | Delegate/undelegate   |
+| `approveAgent(agentAddress:agentName:)`      | agent address, optional name | Approve trading agent |
+| `approveBuilderFee(builder:maxFeeRate:)`     | builder address, max fee     | Approve builder fee   |
 
 ---
 
@@ -495,6 +500,112 @@ try await info.subscribe(.l2Book(coin: "ETH")) { message in
         print("Best ask: \(asks.first?.px ?? "none")")
     }
 }
+```
+
+---
+
+## Signing
+
+The SDK supports two signer protocols for different use cases.
+
+### Signing File Structure
+
+| File                     | Contents                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `Signer.swift`           | `Signature` struct, `HyperliquidSigner` protocol                                               |
+| `EIP712Signer.swift`     | `EIP712Signer` protocol, `EIP712TypedData`, `EIP712Domain`, `EIP712TypeField`, `SendableValue` |
+| `EIP712.swift`           | EIP-712 hash computation, `buildTypedDataL1()`, `buildTypedDataUserSigned()`                   |
+| `PrivateKeySigner.swift` | `PrivateKeySigner` implementation using secp256k1                                              |
+
+### HyperliquidSigner (Direct Signing)
+
+For direct message hash signing where the SDK computes the EIP-712 hash internally. Used by `PrivateKeySigner`:
+
+```swift
+public protocol HyperliquidSigner: Sendable {
+    var address: String { get }
+    func sign(messageHash: Data) async throws -> Signature
+}
+
+// Usage
+let signer = try PrivateKeySigner(privateKeyHex: "0x...")
+let exchange = try await ExchangeAPI(signer: signer, network: .mainnet)
+```
+
+### EIP712Signer (External Wallets)
+
+For external wallets (Privy, WalletConnect, MetaMask, etc.) that need the full EIP-712 typed data to display signing content to users:
+
+```swift
+public protocol EIP712Signer: Sendable {
+    var address: String { get }
+    func signTypedData(_ typedData: EIP712TypedData) async throws -> String
+}
+
+// Implementation example
+class MyWalletSigner: EIP712Signer {
+    let address: String = "0x..."
+
+    func signTypedData(_ typedData: EIP712TypedData) async throws -> String {
+        // Convert to dictionary for wallet SDK
+        let dict = typedData.toDictionary()
+        // Returns: { domain, primaryType, types, message }
+
+        // Call your wallet SDK
+        return try await walletSDK.signTypedData(dict)
+        // Return 0x-prefixed 65-byte signature (r + s + v)
+    }
+}
+
+// Usage
+let walletSigner = MyWalletSigner()
+let exchange = try await ExchangeAPI(eip712Signer: walletSigner, network: .mainnet)
+```
+
+### EIP712TypedData Structure
+
+```swift
+struct EIP712TypedData {
+    let domain: EIP712Domain        // name, version, chainId, verifyingContract
+    let primaryType: String         // e.g., "Agent" or "HyperliquidTransaction:UsdSend"
+    let types: [String: [EIP712TypeField]]  // Type definitions
+    let message: [String: SendableValue]    // Message data
+
+    func toDictionary() -> [String: Any]  // Convert for JSON serialization
+}
+
+struct EIP712Domain {
+    let name: String
+    let version: String
+    let chainId: UInt64
+    let verifyingContract: String
+}
+
+struct EIP712TypeField {
+    let name: String
+    let type: String
+}
+
+enum SendableValue {
+    case string(String)
+    case int(Int)
+    case int64(Int64)
+    case uint64(UInt64)
+    case bool(Bool)
+    case data(Data)
+
+    var rawValue: Any
+}
+```
+
+### Signature Utilities
+
+```swift
+// Parse signature from hex string
+let signature = try Signature.fromHex("0x...")
+
+// Convert signature to hex string
+let hexString = signature.toHexString()
 ```
 
 ---

@@ -196,7 +196,7 @@ public struct Candle: Codable, Sendable {
 }
 
 /// Candle interval
-public enum CandleInterval: String, Sendable {
+public enum CandleInterval: String, Sendable, CaseIterable {
     case oneMinute = "1m"
     case threeMinutes = "3m"
     case fiveMinutes = "5m"
