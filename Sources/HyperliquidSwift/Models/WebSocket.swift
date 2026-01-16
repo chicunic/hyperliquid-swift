@@ -43,29 +43,29 @@ public enum Subscription: Sendable, Encodable {
         switch self {
         case .allMids:
             ["type": "allMids"]
-        case let .bbo(coin):
+        case .bbo(let coin):
             ["type": "bbo", "coin": coin]
-        case let .l2Book(coin):
+        case .l2Book(let coin):
             ["type": "l2Book", "coin": coin]
-        case let .trades(coin):
+        case .trades(let coin):
             ["type": "trades", "coin": coin]
-        case let .userEvents(user):
+        case .userEvents(let user):
             ["type": "userEvents", "user": user]
-        case let .userFills(user):
+        case .userFills(let user):
             ["type": "userFills", "user": user]
-        case let .candle(coin, interval):
+        case .candle(let coin, let interval):
             ["type": "candle", "coin": coin, "interval": interval]
-        case let .orderUpdates(user):
+        case .orderUpdates(let user):
             ["type": "orderUpdates", "user": user]
-        case let .userFundings(user):
+        case .userFundings(let user):
             ["type": "userFundings", "user": user]
-        case let .userNonFundingLedgerUpdates(user):
+        case .userNonFundingLedgerUpdates(let user):
             ["type": "userNonFundingLedgerUpdates", "user": user]
-        case let .webData2(user):
+        case .webData2(let user):
             ["type": "webData2", "user": user]
-        case let .activeAssetCtx(coin):
+        case .activeAssetCtx(let coin):
             ["type": "activeAssetCtx", "coin": coin]
-        case let .activeAssetData(user, coin):
+        case .activeAssetData(let user, let coin):
             ["type": "activeAssetData", "user": user, "coin": coin]
         }
     }
@@ -76,29 +76,29 @@ public enum Subscription: Sendable, Encodable {
         switch self {
         case .allMids:
             "allMids"
-        case let .bbo(coin):
+        case .bbo(let coin):
             "bbo:\(coin.lowercased())"
-        case let .l2Book(coin):
+        case .l2Book(let coin):
             "l2Book:\(coin.lowercased())"
-        case let .trades(coin):
+        case .trades(let coin):
             "trades:\(coin.lowercased())"
         case .userEvents:
             "userEvents"
-        case let .userFills(user):
+        case .userFills(let user):
             "userFills:\(user.lowercased())"
-        case let .candle(coin, interval):
+        case .candle(let coin, let interval):
             "candle:\(coin.lowercased()),\(interval)"
         case .orderUpdates:
             "orderUpdates"
-        case let .userFundings(user):
+        case .userFundings(let user):
             "userFundings:\(user.lowercased())"
-        case let .userNonFundingLedgerUpdates(user):
+        case .userNonFundingLedgerUpdates(let user):
             "userNonFundingLedgerUpdates:\(user.lowercased())"
-        case let .webData2(user):
+        case .webData2(let user):
             "webData2:\(user.lowercased())"
-        case let .activeAssetCtx(coin):
+        case .activeAssetCtx(let coin):
             "activeAssetCtx:\(coin.lowercased())"
-        case let .activeAssetData(user, coin):
+        case .activeAssetData(let user, let coin):
             "activeAssetData:\(coin.lowercased()),\(user.lowercased())"
         }
     }
@@ -164,33 +164,33 @@ public enum WsMessageData: Codable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case let .allMids(data):
+        case .allMids(let data):
             try container.encode(data)
-        case let .l2Book(data):
+        case .l2Book(let data):
             try container.encode(data)
-        case let .bbo(data):
+        case .bbo(let data):
             try container.encode(data)
-        case let .trades(data):
+        case .trades(let data):
             try container.encode(data)
-        case let .userEvents(data):
+        case .userEvents(let data):
             try container.encode(data)
-        case let .userFills(data):
+        case .userFills(let data):
             try container.encode(data)
-        case let .candle(data):
+        case .candle(let data):
             try container.encode(data)
-        case let .orderUpdates(data):
+        case .orderUpdates(let data):
             try container.encode(data)
-        case let .userFundings(data):
+        case .userFundings(let data):
             try container.encode(data)
-        case let .userNonFundingLedgerUpdates(data):
+        case .userNonFundingLedgerUpdates(let data):
             try container.encode(data)
-        case let .activeAssetCtx(data):
+        case .activeAssetCtx(let data):
             try container.encode(data)
-        case let .activeSpotAssetCtx(data):
+        case .activeSpotAssetCtx(let data):
             try container.encode(data)
-        case let .activeAssetData(data):
+        case .activeAssetData(let data):
             try container.encode(data)
-        case let .raw(data):
+        case .raw(let data):
             try container.encode(data)
         }
     }
@@ -393,22 +393,29 @@ public struct WsFill: Codable, Sendable {
 public struct WsLiquidation: Codable, Sendable {
     public let lid: Int64
     public let liquidator: String
-    public let liquidated_user: String
-    public let liquidated_ntl_pos: String
-    public let liquidated_account_value: String
+    public let liquidatedUser: String
+    public let liquidatedNtlPos: String
+    public let liquidatedAccountValue: String
+
+    enum CodingKeys: String, CodingKey {
+        case lid, liquidator
+        case liquidatedUser = "liquidated_user"
+        case liquidatedNtlPos = "liquidated_ntl_pos"
+        case liquidatedAccountValue = "liquidated_account_value"
+    }
 
     public init(
         lid: Int64,
         liquidator: String,
-        liquidated_user: String,
-        liquidated_ntl_pos: String,
-        liquidated_account_value: String
+        liquidatedUser: String,
+        liquidatedNtlPos: String,
+        liquidatedAccountValue: String
     ) {
         self.lid = lid
         self.liquidator = liquidator
-        self.liquidated_user = liquidated_user
-        self.liquidated_ntl_pos = liquidated_ntl_pos
-        self.liquidated_account_value = liquidated_account_value
+        self.liquidatedUser = liquidatedUser
+        self.liquidatedNtlPos = liquidatedNtlPos
+        self.liquidatedAccountValue = liquidatedAccountValue
     }
 }
 
@@ -438,39 +445,52 @@ public struct UserFillsData: Codable, Sendable {
 
 /// Candle data
 public struct CandleData: Codable, Sendable {
-    public let t: Int64 // open time
-    public let T: Int64 // close time
-    public let s: String // symbol
-    public let i: String // interval
-    public let o: String // open
-    public let c: String // close
-    public let h: String // high
-    public let l: String // low
-    public let v: String // volume
-    public let n: Int // number of trades
+    public let openTime: Int64
+    public let closeTime: Int64
+    public let symbol: String
+    public let interval: String
+    public let open: String
+    public let close: String
+    public let high: String
+    public let low: String
+    public let volume: String
+    public let numTrades: Int
+
+    enum CodingKeys: String, CodingKey {
+        case openTime = "t"
+        case closeTime = "T"
+        case symbol = "s"
+        case interval = "i"
+        case open = "o"
+        case close = "c"
+        case high = "h"
+        case low = "l"
+        case volume = "v"
+        case numTrades = "n"
+    }
 
     public init(
-        t: Int64,
-        T: Int64,
-        s: String,
-        i: String,
-        o: String,
-        c: String,
-        h: String,
-        l: String,
-        v: String,
-        n: Int
+        openTime: Int64,
+        closeTime: Int64,
+        symbol: String,
+        interval: String,
+        open: String,
+        close: String,
+        high: String,
+        low: String,
+        volume: String,
+        numTrades: Int
     ) {
-        self.t = t
-        self.T = T
-        self.s = s
-        self.i = i
-        self.o = o
-        self.c = c
-        self.h = h
-        self.l = l
-        self.v = v
-        self.n = n
+        self.openTime = openTime
+        self.closeTime = closeTime
+        self.symbol = symbol
+        self.interval = interval
+        self.open = open
+        self.close = close
+        self.high = high
+        self.low = low
+        self.volume = volume
+        self.numTrades = numTrades
     }
 }
 

@@ -8,33 +8,11 @@ public final class PrivateKeySigner: HyperliquidSigner, @unchecked Sendable {
 
     /// Initialize with a hex private key string
     /// - Parameter privateKeyHex: 32-byte private key as hex string (with or without 0x prefix)
-    public init(privateKeyHex: String) throws {
+    public convenience init(privateKeyHex: String) throws {
         guard let keyData = Data(hex: privateKeyHex), keyData.count == 32 else {
             throw HyperliquidError.invalidHexString("Invalid private key: must be 32 bytes")
         }
-
-        privateKey = try P256K.Recovery.PrivateKey(dataRepresentation: keyData)
-
-        // Derive Ethereum address from public key
-        // Public key is 65 bytes (0x04 prefix + 64 bytes), we need keccak256 of the 64 bytes
-        let publicKeyData = privateKey.publicKey.dataRepresentation
-        let publicKeyBytes: Data
-        if publicKeyData.count == 65, publicKeyData[0] == 0x04 {
-            // Uncompressed format: skip the 0x04 prefix
-            publicKeyBytes = publicKeyData.dropFirst()
-        } else if publicKeyData.count == 33 {
-            // Compressed format: need to decompress
-            // For now, use uncompressed format by creating key with .uncompressed
-            let uncompressedKey = try P256K.Recovery.PrivateKey(dataRepresentation: keyData, format: .uncompressed)
-            let uncompressedPubKey = uncompressedKey.publicKey.dataRepresentation
-            publicKeyBytes = uncompressedPubKey.dropFirst()
-        } else {
-            publicKeyBytes = publicKeyData
-        }
-
-        let addressHash = publicKeyBytes.keccak256
-        let addressBytes = addressHash.suffix(20)
-        address = "0x" + addressBytes.hexStringWithoutPrefix
+        try self.init(privateKeyData: keyData)
     }
 
     /// Initialize with raw private key data
@@ -45,15 +23,17 @@ public final class PrivateKeySigner: HyperliquidSigner, @unchecked Sendable {
         }
 
         privateKey = try P256K.Recovery.PrivateKey(dataRepresentation: privateKeyData)
+        address = try Self.deriveAddress(from: privateKeyData)
+    }
 
-        // Derive Ethereum address from uncompressed public key
-        let uncompressedKey = try P256K.Recovery.PrivateKey(dataRepresentation: privateKeyData, format: .uncompressed)
+    /// Derive Ethereum address from private key data
+    private static func deriveAddress(from keyData: Data) throws -> String {
+        let uncompressedKey = try P256K.Recovery.PrivateKey(dataRepresentation: keyData, format: .uncompressed)
         let publicKeyData = uncompressedKey.publicKey.dataRepresentation
+        // Public key is 65 bytes (0x04 prefix + 64 bytes), we need keccak256 of the 64 bytes
         let publicKeyBytes = publicKeyData.count == 65 ? publicKeyData.dropFirst() : publicKeyData
-
         let addressHash = publicKeyBytes.keccak256
-        let addressBytes = addressHash.suffix(20)
-        address = "0x" + addressBytes.hexStringWithoutPrefix
+        return "0x" + addressHash.suffix(20).hexStringWithoutPrefix
     }
 
     /// Sign a message hash using secp256k1 with recovery

@@ -15,14 +15,14 @@ public struct TypedVariable: Sendable, Equatable {
 
 // MARK: - User-Signed Action Sign Types (Python SDK signing.py:80-145)
 
-public let USD_SEND_SIGN_TYPES: [TypedVariable] = [
+public let usdSendSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "destination", type: "string"),
     TypedVariable(name: "amount", type: "string"),
     TypedVariable(name: "time", type: "uint64"),
 ]
 
-public let SPOT_TRANSFER_SIGN_TYPES: [TypedVariable] = [
+public let spotTransferSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "destination", type: "string"),
     TypedVariable(name: "token", type: "string"),
@@ -30,21 +30,21 @@ public let SPOT_TRANSFER_SIGN_TYPES: [TypedVariable] = [
     TypedVariable(name: "time", type: "uint64"),
 ]
 
-public let WITHDRAW_SIGN_TYPES: [TypedVariable] = [
+public let withdrawSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "destination", type: "string"),
     TypedVariable(name: "amount", type: "string"),
     TypedVariable(name: "time", type: "uint64"),
 ]
 
-public let USD_CLASS_TRANSFER_SIGN_TYPES: [TypedVariable] = [
+public let usdClassTransferSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "amount", type: "string"),
     TypedVariable(name: "toPerp", type: "bool"),
     TypedVariable(name: "nonce", type: "uint64"),
 ]
 
-public let SEND_ASSET_SIGN_TYPES: [TypedVariable] = [
+public let sendAssetSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "destination", type: "string"),
     TypedVariable(name: "sourceDex", type: "string"),
@@ -55,7 +55,7 @@ public let SEND_ASSET_SIGN_TYPES: [TypedVariable] = [
     TypedVariable(name: "nonce", type: "uint64"),
 ]
 
-public let TOKEN_DELEGATE_SIGN_TYPES: [TypedVariable] = [
+public let tokenDelegateSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "validator", type: "address"),
     TypedVariable(name: "wei", type: "uint64"),
@@ -63,17 +63,36 @@ public let TOKEN_DELEGATE_SIGN_TYPES: [TypedVariable] = [
     TypedVariable(name: "nonce", type: "uint64"),
 ]
 
-public let APPROVE_AGENT_SIGN_TYPES: [TypedVariable] = [
+public let approveAgentSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "agentAddress", type: "address"),
     TypedVariable(name: "agentName", type: "string"),
     TypedVariable(name: "nonce", type: "uint64"),
 ]
 
-public let APPROVE_BUILDER_FEE_SIGN_TYPES: [TypedVariable] = [
+public let approveBuilderFeeSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "maxFeeRate", type: "string"),
     TypedVariable(name: "builder", type: "address"),
+    TypedVariable(name: "nonce", type: "uint64"),
+]
+
+public let userDexAbstractionSignTypes: [TypedVariable] = [
+    TypedVariable(name: "hyperliquidChain", type: "string"),
+    TypedVariable(name: "user", type: "address"),
+    TypedVariable(name: "enabled", type: "bool"),
+    TypedVariable(name: "nonce", type: "uint64"),
+]
+
+public let convertToMultiSigUserSignTypes: [TypedVariable] = [
+    TypedVariable(name: "hyperliquidChain", type: "string"),
+    TypedVariable(name: "signers", type: "string"),
+    TypedVariable(name: "nonce", type: "uint64"),
+]
+
+public let multiSigEnvelopeSignTypes: [TypedVariable] = [
+    TypedVariable(name: "hyperliquidChain", type: "string"),
+    TypedVariable(name: "multiSigActionHash", type: "bytes32"),
     TypedVariable(name: "nonce", type: "uint64"),
 ]
 
@@ -88,4 +107,7 @@ public enum UserSignedPrimaryType: String, Sendable {
     case tokenDelegate = "HyperliquidTransaction:TokenDelegate"
     case approveAgent = "HyperliquidTransaction:ApproveAgent"
     case approveBuilderFee = "HyperliquidTransaction:ApproveBuilderFee"
+    case userDexAbstraction = "HyperliquidTransaction:UserDexAbstraction"
+    case convertToMultiSigUser = "HyperliquidTransaction:ConvertToMultiSigUser"
+    case multiSigEnvelope = "HyperliquidTransaction:SendMultiSig"
 }

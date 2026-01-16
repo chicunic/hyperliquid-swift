@@ -10,7 +10,7 @@ let package = Package(
         .macOS(.v15),
     ],
     products: [
-        .library(name: "HyperliquidSwift", targets: ["HyperliquidSwift"]),
+        .library(name: "HyperliquidSwift", targets: ["HyperliquidSwift"])
     ],
     dependencies: [
         // secp256k1 - Elliptic curve cryptography for signing
@@ -41,7 +41,7 @@ let package = Package(
                 .product(name: "OHHTTPStubsSwift", package: "OHHTTPStubs"),
             ],
             resources: [
-                .copy("Fixtures"),
+                .copy("Fixtures")
             ]
         ),
     ]

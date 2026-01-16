@@ -18,28 +18,28 @@ public actor HTTPClient {
     /// Perform a POST request to the info endpoint
     /// - Parameter payload: The request payload
     /// - Returns: Decoded response
-    public func postInfo<T: Decodable>(_ payload: [String: Any]) async throws -> T {
+    public func postInfo<T: Decodable>(_ payload: [String: Sendable]) async throws -> T {
         try await post(endpoint: "/info", payload: payload)
     }
 
     /// Perform a POST request to the info endpoint with raw JSON response
     /// - Parameter payload: The request payload
     /// - Returns: Raw JSON data
-    public func postInfoRaw(_ payload: [String: Any]) async throws -> Data {
+    public func postInfoRaw(_ payload: [String: Sendable]) async throws -> Data {
         try await postRaw(endpoint: "/info", payload: payload)
     }
 
     /// Perform a POST request to the exchange endpoint
     /// - Parameter payload: The request payload
     /// - Returns: Decoded response
-    public func postExchange<T: Decodable>(_ payload: [String: Any]) async throws -> T {
+    public func postExchange<T: Decodable>(_ payload: [String: Sendable]) async throws -> T {
         try await post(endpoint: "/exchange", payload: payload)
     }
 
     /// Perform a POST request to the exchange endpoint with raw JSON response
     /// - Parameter payload: The request payload
     /// - Returns: Raw JSON data
-    public func postExchangeRaw(_ payload: [String: Any]) async throws -> Data {
+    public func postExchangeRaw(_ payload: [String: Sendable]) async throws -> Data {
         try await postRaw(endpoint: "/exchange", payload: payload)
     }
 
@@ -51,7 +51,7 @@ public actor HTTPClient {
     }
 
     /// Perform a POST request and decode the response
-    private func post<T: Decodable>(endpoint: String, payload: [String: Any]) async throws -> T {
+    private func post<T: Decodable>(endpoint: String, payload: [String: Sendable]) async throws -> T {
         let data = try await postRaw(endpoint: endpoint, payload: payload)
         do {
             let decoder = JSONDecoder()
@@ -62,7 +62,7 @@ public actor HTTPClient {
     }
 
     /// Perform a POST request and return raw data
-    private func postRaw(endpoint: String, payload: [String: Any]) async throws -> Data {
+    private func postRaw(endpoint: String, payload: [String: Sendable]) async throws -> Data {
         let jsonData: Data
         do {
             jsonData = try JSONSerialization.data(withJSONObject: payload)
@@ -94,27 +94,13 @@ public actor HTTPClient {
             throw HyperliquidError.networkError(underlying: NSError(domain: "HTTPClient", code: -1))
         }
 
-        // Check for HTTP errors
         guard (200...299).contains(httpResponse.statusCode) else {
-            let responseString = String(data: data, encoding: .utf8)
             throw HyperliquidError.apiError(
                 status: "HTTP \(httpResponse.statusCode)",
-                response: responseString
+                response: String(data: data, encoding: .utf8)
             )
         }
 
         return data
-    }
-}
-
-/// Convenience extension for building info API payloads
-extension HTTPClient {
-    /// Build a simple info request payload
-    public static func infoPayload(type: String, additional: [String: Any] = [:]) -> [String: Any] {
-        var payload: [String: Any] = ["type": type]
-        for (key, value) in additional {
-            payload[key] = value
-        }
-        return payload
     }
 }

@@ -55,7 +55,12 @@ public enum EVMContract: Codable, Sendable {
 
     public struct EvmContractInfo: Codable, Sendable {
         public let address: String
-        public let evm_extra_wei_decimals: Int?
+        public let evmExtraWeiDecimals: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case address
+            case evmExtraWeiDecimals = "evm_extra_wei_decimals"
+        }
     }
 
     public init(from decoder: Decoder) throws {
@@ -73,9 +78,9 @@ public enum EVMContract: Codable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case let .address(addr):
+        case .address(let addr):
             try container.encode(addr)
-        case let .full(info):
+        case .full(let info):
             try container.encode(info)
         }
     }
@@ -83,8 +88,8 @@ public enum EVMContract: Codable, Sendable {
     /// Get the address regardless of format
     public var address: String {
         switch self {
-        case let .address(addr): addr
-        case let .full(info): info.address
+        case .address(let addr): addr
+        case .full(let info): info.address
         }
     }
 }

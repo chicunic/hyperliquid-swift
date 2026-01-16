@@ -15,7 +15,7 @@ public struct Signature: Sendable {
     }
 
     /// Convert to dictionary format for API
-    public var asDictionary: [String: Any] {
+    public var asDictionary: [String: Sendable] {
         [
             "r": r.hexString,
             "s": s.hexString,

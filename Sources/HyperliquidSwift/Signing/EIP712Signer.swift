@@ -88,12 +88,12 @@ public enum SendableValue: Sendable, Equatable {
     /// Get underlying raw value
     public var rawValue: Any {
         switch self {
-        case let .string(v): v
-        case let .int(v): v
-        case let .int64(v): v
-        case let .uint64(v): v
-        case let .bool(v): v
-        case let .data(v): v
+        case .string(let v): v
+        case .int(let v): v
+        case .int64(let v): v
+        case .uint64(let v): v
+        case .bool(let v): v
+        case .data(let v): v
         }
     }
 

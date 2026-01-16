@@ -255,7 +255,7 @@ public actor WebSocketManager {
     private func startPing() {
         pingTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(50 * 1_000_000_000)) // 50 seconds
+                try? await Task.sleep(nanoseconds: UInt64(50 * 1_000_000_000))  // 50 seconds
 
                 guard !Task.isCancelled else { break }
 
@@ -301,9 +301,9 @@ public actor WebSocketManager {
         let message = try await webSocketTask.receive()
 
         switch message {
-        case let .string(text):
+        case .string(let text):
             return text
-        case let .data(data):
+        case .data(let data):
             guard let text = String(data: data, encoding: .utf8) else {
                 throw WebSocketError.invalidMessage
             }
@@ -321,8 +321,8 @@ public actor WebSocketManager {
 
         // Parse JSON
         guard let data = message.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let channelString = json["channel"] as? String
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let channelString = json["channel"] as? String
         else {
             return
         }
@@ -359,76 +359,60 @@ public actor WebSocketManager {
     /// Convert WebSocket message to identifier
     /// Reference: Python SDK websocket_manager.py:ws_msg_to_identifier
     private func identifierFromMessage(_ json: [String: Any], channel: String) -> String? {
+        // Channels with no additional parameters
         switch channel {
-        case "pong":
-            return "pong"
+        case "pong": return "pong"
+        case "allMids": return "allMids"
+        case "user": return "userEvents"
+        case "orderUpdates": return "orderUpdates"
+        default: break
+        }
 
-        case "allMids":
-            return "allMids"
-
-        case "l2Book":
-            guard let data = json["data"] as? [String: Any],
-                  let coin = data["coin"] as? String else { return nil }
-            return "l2Book:\(coin.lowercased())"
-
-        case "bbo":
-            guard let data = json["data"] as? [String: Any],
-                  let coin = data["coin"] as? String else { return nil }
-            return "bbo:\(coin.lowercased())"
-
-        case "trades":
-            guard let data = json["data"] as? [[String: Any]],
-                  let firstTrade = data.first,
-                  let coin = firstTrade["coin"] as? String else { return nil }
-            return "trades:\(coin.lowercased())"
-
-        case "user":
-            return "userEvents"
-
-        case "userFills":
-            guard let data = json["data"] as? [String: Any],
-                  let user = data["user"] as? String else { return nil }
-            return "userFills:\(user.lowercased())"
-
-        case "candle":
-            guard let data = json["data"] as? [String: Any],
-                  let symbol = data["s"] as? String,
-                  let interval = data["i"] as? String else { return nil }
-            return "candle:\(symbol.lowercased()),\(interval)"
-
-        case "orderUpdates":
-            return "orderUpdates"
-
-        case "userFundings":
-            guard let data = json["data"] as? [String: Any],
-                  let user = data["user"] as? String else { return nil }
-            return "userFundings:\(user.lowercased())"
-
-        case "userNonFundingLedgerUpdates":
-            guard let data = json["data"] as? [String: Any],
-                  let user = data["user"] as? String else { return nil }
-            return "userNonFundingLedgerUpdates:\(user.lowercased())"
-
-        case "webData2":
-            guard let data = json["data"] as? [String: Any],
-                  let user = data["user"] as? String else { return nil }
-            return "webData2:\(user.lowercased())"
-
-        case "activeAssetCtx",
-             "activeSpotAssetCtx":
-            guard let data = json["data"] as? [String: Any],
-                  let coin = data["coin"] as? String else { return nil }
-            return "activeAssetCtx:\(coin.lowercased())"
-
-        case "activeAssetData":
-            guard let data = json["data"] as? [String: Any],
-                  let coin = data["coin"] as? String,
-                  let user = data["user"] as? String else { return nil }
-            return "activeAssetData:\(coin.lowercased()),\(user.lowercased())"
-
-        default:
+        // Extract data dictionary for parameterized channels
+        guard let data = json["data"] as? [String: Any] else {
+            // Special case: trades channel has array data
+            if channel == "trades",
+                let arrayData = json["data"] as? [[String: Any]],
+                let firstTrade = arrayData.first,
+                let coin = firstTrade["coin"] as? String
+            {
+                return "trades:\(coin.lowercased())"
+            }
             return nil
         }
+
+        // Coin-based channels
+        if let coin = data["coin"] as? String {
+            switch channel {
+            case "l2Book", "bbo":
+                return "\(channel):\(coin.lowercased())"
+            case "activeAssetCtx", "activeSpotAssetCtx":
+                return "activeAssetCtx:\(coin.lowercased())"
+            case "activeAssetData":
+                guard let user = data["user"] as? String else { return nil }
+                return "activeAssetData:\(coin.lowercased()),\(user.lowercased())"
+            default: break
+            }
+        }
+
+        // User-based channels
+        if let user = data["user"] as? String {
+            switch channel {
+            case "userFills", "userFundings", "userNonFundingLedgerUpdates", "webData2":
+                return "\(channel):\(user.lowercased())"
+            default: break
+            }
+        }
+
+        // Candle channel (special format)
+        if channel == "candle",
+            let symbol = data["s"] as? String,
+            let interval = data["i"] as? String
+        {
+            return "candle:\(symbol.lowercased()),\(interval)"
+        }
+
+        return nil
     }
 
     private func handleDisconnect() async {
@@ -449,7 +433,7 @@ extension WebSocketManager {
     ) async throws -> Int {
         try await subscribe(.allMids) { _, data in
             if let dict = data as? [String: Any],
-               let mids = dict["mids"] as? [String: String]
+                let mids = dict["mids"] as? [String: String]
             {
                 callback(mids)
             }
@@ -464,8 +448,8 @@ extension WebSocketManager {
     ) async throws -> Int {
         try await subscribe(.l2Book(coin: coin)) { _, data in
             if let dict = data as? [String: Any],
-               let jsonData = try? JSONSerialization.data(withJSONObject: dict),
-               let decoded = try? JSONDecoder().decode(L2BookData.self, from: jsonData)
+                let jsonData = try? JSONSerialization.data(withJSONObject: dict),
+                let decoded = try? JSONDecoder().decode(L2BookData.self, from: jsonData)
             {
                 callback(decoded)
             }
@@ -480,8 +464,8 @@ extension WebSocketManager {
     ) async throws -> Int {
         try await subscribe(.trades(coin: coin)) { _, data in
             if let array = data as? [[String: Any]],
-               let jsonData = try? JSONSerialization.data(withJSONObject: array),
-               let decoded = try? JSONDecoder().decode([TradeData].self, from: jsonData)
+                let jsonData = try? JSONSerialization.data(withJSONObject: array),
+                let decoded = try? JSONDecoder().decode([TradeData].self, from: jsonData)
             {
                 callback(decoded)
             }
@@ -496,8 +480,8 @@ extension WebSocketManager {
     ) async throws -> Int {
         try await subscribe(.userFills(user: user)) { _, data in
             if let dict = data as? [String: Any],
-               let jsonData = try? JSONSerialization.data(withJSONObject: dict),
-               let decoded = try? JSONDecoder().decode(UserFillsData.self, from: jsonData)
+                let jsonData = try? JSONSerialization.data(withJSONObject: dict),
+                let decoded = try? JSONDecoder().decode(UserFillsData.self, from: jsonData)
             {
                 callback(decoded)
             }
@@ -512,8 +496,8 @@ extension WebSocketManager {
     ) async throws -> Int {
         try await subscribe(.orderUpdates(user: user)) { _, data in
             if let array = data as? [[String: Any]],
-               let jsonData = try? JSONSerialization.data(withJSONObject: array),
-               let decoded = try? JSONDecoder().decode([OrderUpdateData].self, from: jsonData)
+                let jsonData = try? JSONSerialization.data(withJSONObject: array),
+                let decoded = try? JSONDecoder().decode([OrderUpdateData].self, from: jsonData)
             {
                 callback(decoded)
             }
@@ -529,8 +513,8 @@ extension WebSocketManager {
     ) async throws -> Int {
         try await subscribe(.candle(coin: coin, interval: interval)) { _, data in
             if let dict = data as? [String: Any],
-               let jsonData = try? JSONSerialization.data(withJSONObject: dict),
-               let decoded = try? JSONDecoder().decode(CandleData.self, from: jsonData)
+                let jsonData = try? JSONSerialization.data(withJSONObject: dict),
+                let decoded = try? JSONDecoder().decode(CandleData.self, from: jsonData)
             {
                 callback(decoded)
             }

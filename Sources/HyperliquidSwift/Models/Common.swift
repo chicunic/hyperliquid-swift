@@ -22,7 +22,7 @@ public struct Cloid: Sendable, Hashable, Codable {
         // Validate: must be 16 bytes (32 hex chars)
         let cleaned = rawValue.hasPrefix("0x") ? String(rawValue.dropFirst(2)) : rawValue
         guard cleaned.count == 32,
-              cleaned.allSatisfy(\.isHexDigit)
+            cleaned.allSatisfy(\.isHexDigit)
         else {
             return nil
         }

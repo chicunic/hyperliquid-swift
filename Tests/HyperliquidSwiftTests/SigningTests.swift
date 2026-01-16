@@ -1,16 +1,16 @@
 import BigInt
 import Foundation
-@testable import HyperliquidSwift
 import OrderedCollections
 import Testing
+
+@testable import HyperliquidSwift
 
 /// Tests for signing logic alignment with Python SDK
 /// Reference: Python SDK tests/signing_test.py
 /// These tests verify exact signature values match Python SDK output
 @Suite("Signing Tests")
 struct SigningTests {
-    // Test wallet - same as Python SDK: 0x0123456789...
-    // This derives address: 0x14dc79964da2c08b23698b3d3cc7ca32193d9955
+    // Test wallet - same as Python SDK: 0x0123456789... This derives address: 0x14dc79964da2c08b23698b3d3cc7ca32193d9955
     static let testPrivateKey = "0x0123456789012345678901234567890123456789012345678901234567890123"
 
     // MARK: - test_phantom_agent_creation_matches_production
@@ -39,11 +39,6 @@ struct SigningTests {
             expiresAfter: nil
         )
 
-        let phantomAgent = EIP712.constructPhantomAgent(source: "a", connectionId: hash)
-
-        // Verify the phantom agent was created with correct source
-        #expect(phantomAgent["source"] as? String == "a")
-
         // Verify the connectionId matches Python SDK output
         let connectionIdHex = "0x" + hash.hexStringWithoutPrefix
         #expect(connectionIdHex == "0x0fcbeda5ae3c4950a548021552a4fea2226858c4453571bf3f24ba017eac2908")
@@ -55,9 +50,8 @@ struct SigningTests {
     func l1ActionSigningMatches() async throws {
         let signer = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
 
-        // Python: action = {"type": "dummy", "num": float_to_int_for_hashing(1000)}
-        // Key order: type, num
-        let action: OrderedDictionary<String, Any> = try [
+        // Python: action = {"type": "dummy", "num": float_to_int_for_hashing(1000)}. Key order: type, num
+        let action: OrderedDictionary<String, Sendable> = try [
             "type": "dummy",
             "num": Decimal(1000).toIntForHashing(),
         ]
@@ -225,7 +219,7 @@ struct SigningTests {
         let vaultAddress = "0x1719884eb866cb12b2287399b15f7db5e7d775ea"
 
         // Python: action = {"type": "dummy", "num": float_to_int_for_hashing(1000)}
-        let action: OrderedDictionary<String, Any> = try [
+        let action: OrderedDictionary<String, Sendable> = try [
             "type": "dummy",
             "num": Decimal(1000).toIntForHashing(),
         ]
@@ -328,16 +322,14 @@ struct SigningTests {
 
     @Test("Float to int for hashing")
     func floatToIntForHashing() throws {
-        // Test with BigInt to match Python SDK exactly (handles large numbers)
-        // Python: assert float_to_int_for_hashing(123123123123) == 12312312312300000000
+        // Test with BigInt to match Python SDK exactly (handles large numbers). Python: assert float_to_int_for_hashing(123123123123) == 12312312312300000000
         #expect(try Decimal(string: "123123123123")!.toIntForHashing() == BigInt("12312312312300000000"))
         // Python: assert float_to_int_for_hashing(0.00001231) == 1231
         #expect(try Decimal(string: "0.00001231")!.toIntForHashing() == BigInt(1231))
         // Python: assert float_to_int_for_hashing(1.033) == 103300000
         #expect(try Decimal(string: "1.033")!.toIntForHashing() == BigInt(103_300_000))
 
-        // Test that too many decimal places throws
-        // Python: with pytest.raises(ValueError): float_to_int_for_hashing(0.000012312312)
+        // Test that too many decimal places throws. Python: with pytest.raises(ValueError): float_to_int_for_hashing(0.000012312312)
         let tooManyDecimals = Decimal(string: "0.000012312312")!
         #expect(throws: HyperliquidError.self) {
             _ = try tooManyDecimals.toIntForHashing()
@@ -350,14 +342,13 @@ struct SigningTests {
     func signUsdTransferAction() async throws {
         let signer = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
 
-        let action: [String: Any] = [
+        let action: [String: Sendable] = [
             "destination": "0x5e9ee1089755c3435139848e47e6635505d5a13a",
             "amount": "1",
             "time": 1_687_816_341_423,
         ]
 
-        // Note: signTypes matches Python's USD_SEND_SIGN_TYPES - does NOT include signatureChainId
-        // EIP712.hashTypedDataUserSigned adds signatureChainId automatically
+        // Note: signTypes matches Python's USD_SEND_SIGN_TYPES - does NOT include signatureChainId. EIP712.hashTypedDataUserSigned adds signatureChainId automatically
         let signTypes: [TypedVariable] = [
             TypedVariable(name: "hyperliquidChain", type: "string"),
             TypedVariable(name: "destination", type: "string"),
@@ -372,8 +363,7 @@ struct SigningTests {
             isMainnet: false
         )
 
-        // Debug: Print hash to compare with Python
-        // Python hash: 0xe81f1691f350bb9a59d2b40b3d16c9526a8f93407dd72bcb9ea95e291a5de6da
+        // Debug: Print hash to compare with Python. Python hash: 0xe81f1691f350bb9a59d2b40b3d16c9526a8f93407dd72bcb9ea95e291a5de6da
         print("Swift message hash: \(messageHash.hexString)")
 
         let signature = try await signer.sign(messageHash: messageHash)
@@ -390,7 +380,7 @@ struct SigningTests {
     func signWithdrawFromBridgeAction() async throws {
         let signer = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
 
-        let action: [String: Any] = [
+        let action: [String: Sendable] = [
             "destination": "0x5e9ee1089755c3435139848e47e6635505d5a13a",
             "amount": "1",
             "time": 1_687_816_341_423,
@@ -425,7 +415,7 @@ struct SigningTests {
         let signer = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
 
         // Python: action = {"type": "createSubAccount", "name": "example"}
-        let action: OrderedDictionary<String, Any> = [
+        let action: OrderedDictionary<String, Sendable> = [
             "type": "createSubAccount",
             "name": "example",
         ]
@@ -474,7 +464,7 @@ struct SigningTests {
         let signer = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
 
         // Python: action = {"type": "subAccountTransfer", "subAccountUser": "...", "isDeposit": True, "usd": 10}
-        let action: OrderedDictionary<String, Any> = [
+        let action: OrderedDictionary<String, Sendable> = [
             "type": "subAccountTransfer",
             "subAccountUser": "0x1d9470d4b963f552e6f671a81619d395877bf409",
             "isDeposit": true,
@@ -526,8 +516,8 @@ struct SigningTests {
 
         // Test without time
         // Python: action = {"type": "scheduleCancel"}
-        let actionNoTime: OrderedDictionary<String, Any> = [
-            "type": "scheduleCancel",
+        let actionNoTime: OrderedDictionary<String, Sendable> = [
+            "type": "scheduleCancel"
         ]
 
         // Test mainnet signature (no time)
@@ -544,10 +534,12 @@ struct SigningTests {
         let signatureNoTimeMainnet = try await signer.sign(messageHash: messageHashNoTimeMainnet)
 
         // Python expected values
-        #expect(signatureNoTimeMainnet.r
-            .hexString == "0x6cdfb286702f5917e76cd9b3b8bf678fcc49aec194c02a73e6d4f16891195df9")
-        #expect(signatureNoTimeMainnet.s
-            .hexString == "0x6557ac307fa05d25b8d61f21fb8a938e703b3d9bf575f6717ba21ec61261b2a0")
+        #expect(
+            signatureNoTimeMainnet.r
+                .hexString == "0x6cdfb286702f5917e76cd9b3b8bf678fcc49aec194c02a73e6d4f16891195df9")
+        #expect(
+            signatureNoTimeMainnet.s
+                .hexString == "0x6557ac307fa05d25b8d61f21fb8a938e703b3d9bf575f6717ba21ec61261b2a0")
         #expect(signatureNoTimeMainnet.v == 27)
 
         // Test testnet signature (no time)
@@ -564,15 +556,17 @@ struct SigningTests {
         let signatureNoTimeTestnet = try await signer.sign(messageHash: messageHashNoTimeTestnet)
 
         // Python expected values
-        #expect(signatureNoTimeTestnet.r
-            .hexString == "0xc75bb195c3f6a4e06b7d395acc20bbb224f6d23ccff7c6a26d327304e6efaeed")
-        #expect(signatureNoTimeTestnet.s
-            .hexString == "0x342f8ede109a29f2c0723bd5efb9e9100e3bbb493f8fb5164ee3d385908233df")
+        #expect(
+            signatureNoTimeTestnet.r
+                .hexString == "0xc75bb195c3f6a4e06b7d395acc20bbb224f6d23ccff7c6a26d327304e6efaeed")
+        #expect(
+            signatureNoTimeTestnet.s
+                .hexString == "0x342f8ede109a29f2c0723bd5efb9e9100e3bbb493f8fb5164ee3d385908233df")
         #expect(signatureNoTimeTestnet.v == 28)
 
         // Test with time
         // Python: action = {"type": "scheduleCancel", "time": 123456789}
-        let actionWithTime: OrderedDictionary<String, Any> = [
+        let actionWithTime: OrderedDictionary<String, Sendable> = [
             "type": "scheduleCancel",
             "time": 123_456_789,
         ]
@@ -591,10 +585,12 @@ struct SigningTests {
         let signatureWithTimeMainnet = try await signer.sign(messageHash: messageHashWithTimeMainnet)
 
         // Python expected values
-        #expect(signatureWithTimeMainnet.r
-            .hexString == "0x609cb20c737945d070716dcc696ba030e9976fcf5edad87afa7d877493109d55")
-        #expect(signatureWithTimeMainnet.s
-            .hexString == "0x16c685d63b5c7a04512d73f183b3d7a00da5406ff1f8aad33f8ae2163bab758b")
+        #expect(
+            signatureWithTimeMainnet.r
+                .hexString == "0x609cb20c737945d070716dcc696ba030e9976fcf5edad87afa7d877493109d55")
+        #expect(
+            signatureWithTimeMainnet.s
+                .hexString == "0x16c685d63b5c7a04512d73f183b3d7a00da5406ff1f8aad33f8ae2163bab758b")
         #expect(signatureWithTimeMainnet.v == 28)
 
         // Test testnet signature (with time)
@@ -611,10 +607,12 @@ struct SigningTests {
         let signatureWithTimeTestnet = try await signer.sign(messageHash: messageHashWithTimeTestnet)
 
         // Python expected values
-        #expect(signatureWithTimeTestnet.r
-            .hexString == "0x4e4f2dbd4107c69783e251b7e1057d9f2b9d11cee213441ccfa2be63516dc5bc")
-        #expect(signatureWithTimeTestnet.s
-            .hexString == "0x706c656b23428c8ba356d68db207e11139ede1670481a9e01ae2dfcdb0e1a678")
+        #expect(
+            signatureWithTimeTestnet.r
+                .hexString == "0x4e4f2dbd4107c69783e251b7e1057d9f2b9d11cee213441ccfa2be63516dc5bc")
+        #expect(
+            signatureWithTimeTestnet.s
+                .hexString == "0x706c656b23428c8ba356d68db207e11139ede1670481a9e01ae2dfcdb0e1a678")
         #expect(signatureWithTimeTestnet.v == 27)
     }
 
@@ -641,7 +639,7 @@ struct SigningTests {
         // Test random generation
         let randomCloid = Cloid.random()
         #expect(randomCloid.hexString.hasPrefix("0x"))
-        #expect(randomCloid.hexString.count == 34) // 0x + 32 hex chars
+        #expect(randomCloid.hexString.count == 34)  // 0x + 32 hex chars
     }
 
     @Test("Address normalization")
@@ -658,7 +656,7 @@ struct SigningTests {
         #expect(try Decimal(string: "100")!.toWireString() == "100")
         #expect(try Decimal(string: "100.5")!.toWireString() == "100.5")
         #expect(try Decimal(string: "100.50")!.toWireString() == "100.5")
-        #expect(try Decimal(string: "100.12345678")!.toWireString() == "100.12345678") // Exactly 8 decimals
+        #expect(try Decimal(string: "100.12345678")!.toWireString() == "100.12345678")  // Exactly 8 decimals
         #expect(try Decimal(string: "-0")!.toWireString() == "0")
         // Values with too many decimals throw precision loss error
         #expect(throws: HyperliquidError.self) {

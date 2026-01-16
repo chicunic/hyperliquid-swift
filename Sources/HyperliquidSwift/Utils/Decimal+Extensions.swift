@@ -23,7 +23,7 @@ extension Decimal {
 
         // Check precision loss
         let difference = abs((rounded as Decimal) - self)
-        let threshold = Decimal(sign: .plus, exponent: -12, significand: 1) // 1e-12
+        let threshold = Decimal(sign: .plus, exponent: -12, significand: 1)  // 1e-12
 
         if difference >= threshold {
             throw HyperliquidError.precisionLoss(value: self)
@@ -90,7 +90,7 @@ extension Decimal {
 
         // Check precision loss
         let difference = abs(withDecimals - roundedDecimal)
-        let threshold = Decimal(string: "0.001")! // 1e-3
+        let threshold = Decimal(string: "0.001")!  // 1e-3
 
         if difference >= threshold {
             throw HyperliquidError.precisionLoss(value: self)

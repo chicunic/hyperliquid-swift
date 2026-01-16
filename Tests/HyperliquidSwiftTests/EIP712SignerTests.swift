@@ -1,9 +1,10 @@
 import BigInt
 import Foundation
-@testable import HyperliquidSwift
 import OrderedCollections
 import P256K
 import Testing
+
+@testable import HyperliquidSwift
 
 // MARK: - Mock EIP712Signer for Testing
 
@@ -104,34 +105,34 @@ final class MockEIP712Signer: EIP712Signer, @unchecked Sendable {
     private func encodeValue(_ value: SendableValue, type: String) -> Data {
         switch type {
         case "string":
-            if case let .string(s) = value {
+            if case .string(let s) = value {
                 return s.data(using: .utf8)!.keccak256
             }
         case "bytes32":
-            if case let .data(d) = value {
+            if case .data(let d) = value {
                 return d.leftPadded(to: 32)
             }
         case "address":
-            if case let .string(s) = value {
+            if case .string(let s) = value {
                 return encodeAddress(s)
             }
         case "bool":
-            if case let .bool(b) = value {
+            if case .bool(let b) = value {
                 var data = Data(repeating: 0, count: 31)
                 data.append(b ? 1 : 0)
                 return data
             }
         case "uint64":
             switch value {
-            case let .uint64(u): return encodeUInt256(u)
-            case let .int64(i): return encodeUInt256(UInt64(i))
-            case let .int(i): return encodeUInt256(UInt64(i))
+            case .uint64(let u): return encodeUInt256(u)
+            case .int64(let i): return encodeUInt256(UInt64(i))
+            case .int(let i): return encodeUInt256(UInt64(i))
             default: break
             }
         case "uint256":
             switch value {
-            case let .uint64(u): return encodeUInt256(u)
-            case let .string(s): return encodeUInt256FromHex(s)
+            case .uint64(let u): return encodeUInt256(u)
+            case .string(let s): return encodeUInt256FromHex(s)
             default: break
             }
         default:
@@ -196,7 +197,7 @@ struct EIP712SignerTests {
         let hyperliquidSigner = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
 
-        let action: OrderedDictionary<String, Any> = try [
+        let action: OrderedDictionary<String, Sendable> = try [
             "type": "dummy",
             "num": Decimal(1000).toIntForHashing(),
         ]
@@ -277,7 +278,7 @@ struct EIP712SignerTests {
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
         let vaultAddress = "0x1719884eb866cb12b2287399b15f7db5e7d775ea"
 
-        let action: OrderedDictionary<String, Any> = try [
+        let action: OrderedDictionary<String, Sendable> = try [
             "type": "dummy",
             "num": Decimal(1000).toIntForHashing(),
         ]
@@ -405,7 +406,7 @@ struct EIP712SignerTests {
         let hyperliquidSigner = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
 
-        let action: OrderedDictionary<String, Any> = [
+        let action: OrderedDictionary<String, Sendable> = [
             "type": "createSubAccount",
             "name": "example",
         ]
@@ -441,7 +442,7 @@ struct EIP712SignerTests {
         let hyperliquidSigner = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
 
-        let action: OrderedDictionary<String, Any> = [
+        let action: OrderedDictionary<String, Sendable> = [
             "type": "subAccountTransfer",
             "subAccountUser": "0x1d9470d4b963f552e6f671a81619d395877bf409",
             "isDeposit": true,
@@ -480,8 +481,8 @@ struct EIP712SignerTests {
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
 
         // Test without time
-        let actionNoTime: OrderedDictionary<String, Any> = [
-            "type": "scheduleCancel",
+        let actionNoTime: OrderedDictionary<String, Sendable> = [
+            "type": "scheduleCancel"
         ]
 
         let actionHashNoTime = try ActionHash.compute(
@@ -510,7 +511,7 @@ struct EIP712SignerTests {
         #expect(sig2NoTime.v == 27)
 
         // Test with time
-        let actionWithTime: OrderedDictionary<String, Any> = [
+        let actionWithTime: OrderedDictionary<String, Sendable> = [
             "type": "scheduleCancel",
             "time": 123_456_789,
         ]
@@ -548,7 +549,7 @@ struct EIP712SignerTests {
         let hyperliquidSigner = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
 
-        let action: [String: Any] = [
+        let action: [String: Sendable] = [
             "destination": "0x5e9ee1089755c3435139848e47e6635505d5a13a",
             "amount": "1",
             "time": 1_687_816_341_423,
@@ -595,7 +596,7 @@ struct EIP712SignerTests {
         let hyperliquidSigner = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
         let eip712Signer = try MockEIP712Signer(privateKeyHex: Self.testPrivateKey)
 
-        let action: [String: Any] = [
+        let action: [String: Sendable] = [
             "destination": "0x5e9ee1089755c3435139848e47e6635505d5a13a",
             "amount": "1",
             "time": 1_687_816_341_423,
@@ -657,7 +658,7 @@ struct EIP712SignerTests {
 
     @Test("EIP712TypedData toDictionary format")
     func typedDataToDictionary() throws {
-        let action: OrderedDictionary<String, Any> = try [
+        let action: OrderedDictionary<String, Sendable> = try [
             "type": "dummy",
             "num": Decimal(1000).toIntForHashing(),
         ]
@@ -675,16 +676,16 @@ struct EIP712SignerTests {
         // Verify structure matches what wallet SDKs expect
         #expect(dict["primaryType"] as? String == "Agent")
 
-        let domain = dict["domain"] as? [String: Any]
+        let domain = dict["domain"] as? [String: Sendable]
         #expect(domain?["name"] as? String == "Exchange")
         #expect(domain?["version"] as? String == "1")
         #expect(domain?["chainId"] as? UInt64 == 1337)
 
-        let types = dict["types"] as? [String: Any]
+        let types = dict["types"] as? [String: Sendable]
         #expect(types?["EIP712Domain"] != nil)
         #expect(types?["Agent"] != nil)
 
-        let message = dict["message"] as? [String: Any]
+        let message = dict["message"] as? [String: Sendable]
         #expect(message?["source"] as? String == "a")
         #expect(message?["connectionId"] != nil)
     }

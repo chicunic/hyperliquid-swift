@@ -1,6 +1,7 @@
 import Foundation
-@testable import HyperliquidSwift
 import Testing
+
+@testable import HyperliquidSwift
 
 /// Tests for Exchange API
 /// Note: Most tests require a funded testnet account
@@ -12,7 +13,7 @@ struct ExchangeAPITests {
     @Test("Create Exchange API instance")
     func createExchangeAPI() async throws {
         let signer = try PrivateKeySigner(privateKeyHex: Self.testPrivateKey)
-        let exchange = try await ExchangeAPI(signer: signer, network: .testnet)
+        _ = try await ExchangeAPI(signer: signer, network: .testnet)
         // Should not throw
     }
 
@@ -76,7 +77,7 @@ struct ExchangeAPITests {
         #expect(modify.order.coin == "ETH")
         #expect(modify.order.isBuy == false)
 
-        if case let .oid(oid) = modify.oidOrCloid {
+        if case .oid(let oid) = modify.oidOrCloid {
             #expect(oid == 12345)
         } else {
             Issue.record("Expected oid type")
