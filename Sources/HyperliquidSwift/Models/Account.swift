@@ -313,7 +313,7 @@ public struct OrderDetails: Codable, Sendable {
     /// Client order ID
     public let cloid: String?
     /// Children orders (for advanced order types)
-    public let children: [OrderDetails]?
+    public let children: [Self]?
 }
 
 // MARK: - Rate Limit

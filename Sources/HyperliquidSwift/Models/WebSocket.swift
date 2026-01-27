@@ -217,9 +217,9 @@ public struct AnyCodable: Codable, @unchecked Sendable {
             value = double
         } else if let string = try? container.decode(String.self) {
             value = string
-        } else if let array = try? container.decode([AnyCodable].self) {
+        } else if let array = try? container.decode([Self].self) {
             value = array.map(\.value)
-        } else if let dict = try? container.decode([String: AnyCodable].self) {
+        } else if let dict = try? container.decode([String: Self].self) {
             value = dict.mapValues { $0.value }
         } else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode AnyCodable")
@@ -240,9 +240,9 @@ public struct AnyCodable: Codable, @unchecked Sendable {
         case let string as String:
             try container.encode(string)
         case let array as [Any]:
-            try container.encode(array.map { AnyCodable($0) })
+            try container.encode(array.map { Self($0) })
         case let dict as [String: Any]:
-            try container.encode(dict.mapValues { AnyCodable($0) })
+            try container.encode(dict.mapValues { Self($0) })
         default:
             throw EncodingError.invalidValue(
                 value,

@@ -97,10 +97,10 @@ public enum SendableValue: Sendable, Equatable {
         }
     }
 
-    public static func from(_ value: String) -> SendableValue { .string(value) }
-    public static func from(_ value: Int) -> SendableValue { .int(value) }
-    public static func from(_ value: Int64) -> SendableValue { .int64(value) }
-    public static func from(_ value: UInt64) -> SendableValue { .uint64(value) }
-    public static func from(_ value: Bool) -> SendableValue { .bool(value) }
-    public static func from(_ value: Data) -> SendableValue { .data(value) }
+    public static func from(_ value: String) -> Self { .string(value) }
+    public static func from(_ value: Int) -> Self { .int(value) }
+    public static func from(_ value: Int64) -> Self { .int64(value) }
+    public static func from(_ value: UInt64) -> Self { .uint64(value) }
+    public static func from(_ value: Bool) -> Self { .bool(value) }
+    public static func from(_ value: Data) -> Self { .data(value) }
 }

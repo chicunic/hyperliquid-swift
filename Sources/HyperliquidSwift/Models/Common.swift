@@ -30,11 +30,11 @@ public struct Cloid: Sendable, Hashable, Codable {
     }
 
     /// Create a new random CLOID
-    public static func random() -> Cloid {
+    public static func random() -> Self {
         var bytes = [UInt8](repeating: 0, count: 16)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         let hex = bytes.map { String(format: "%02x", $0) }.joined()
-        return Cloid(rawValue: hex)!
+        return Self(rawValue: hex)!
     }
 
     /// Hex string with 0x prefix (matches Python SDK format for wire)

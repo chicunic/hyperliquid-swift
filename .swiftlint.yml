@@ -1,0 +1,122 @@
+# SwiftLint Configuration for Hyperliquid Swift SDK
+
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - DerivedData
+  - Package.swift
+
+disabled_rules:
+  - file_length
+  - type_body_length
+  - todo
+  - opening_brace
+  - trailing_comma
+  - trailing_whitespace
+  - vertical_whitespace
+  - leading_whitespace
+  - line_length
+  - statement_position
+  - colon
+  - comma
+  - switch_case_alignment
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - array_init
+  - empty_collection_literal
+  - empty_string
+  - first_where
+  - last_where
+  - flatmap_over_map_reduce
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - reduce_into
+  - sorted_first_last
+  - toggle_bool
+  - prefer_zero_over_explicit_init
+  - identical_operands
+  - implicit_return
+  - lower_acl_than_parent
+  - modifier_order
+  - prefer_self_in_static_references
+  - prefer_self_type_over_type_of_self
+  - yoda_condition
+
+function_body_length:
+  warning: 80
+  error: 150
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+  ignores_case_statements: true
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - id
+    - x
+    - y
+    - i
+    - j
+    - k
+    - to
+    - ok
+    - t
+    - T
+    - s
+    - o
+    - c
+    - h
+    - l
+    - v
+    - n
+    - p
+    - px
+    - sz
+    - oi
+    - r
+    - a
+    - b
+    - d
+    - u
+
+type_name:
+  min_length:
+    warning: 3
+    error: 2
+  max_length:
+    warning: 50
+    error: 60
+
+large_tuple:
+  warning: 3
+  error: 4
+
+nesting:
+  type_level:
+    warning: 3
+    error: 5
+  function_level:
+    warning: 3
+    error: 5
+
+function_parameter_count:
+  warning: 8
+  error: 10
+  ignores_default_parameters: true
+
+reporter: "xcode"

@@ -176,7 +176,7 @@ private struct MockMessageDigest: Digest {
 
     func hash(into hasher: inout Hasher) { hasher.combine(data) }
 
-    static func == (lhs: MockMessageDigest, rhs: MockMessageDigest) -> Bool { lhs.data == rhs.data }
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.data == rhs.data }
 
     var description: String { data.hexString }
 

@@ -139,8 +139,11 @@ make build
 # Run unit tests
 make test
 
-# Format code (requires swift-format)
-make format
+# Check code style (SwiftLint + swift-format)
+make check
+
+# Fix code style issues
+make fix
 
 # Update dependencies
 make resolve

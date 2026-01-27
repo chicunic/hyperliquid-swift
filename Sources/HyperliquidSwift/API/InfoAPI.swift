@@ -115,8 +115,8 @@ public actor InfoAPI {
         try await httpClient.postInfo(makePayload(type: "spotMeta"))
     }
 
-    public func metaAndAssetCtxs() async throws -> MetaAndAssetCtxs {
-        let data = try await httpClient.postInfoRaw(makePayload(type: "metaAndAssetCtxs"))
+    public func metaAndAssetCtxs(dex: String = "") async throws -> MetaAndAssetCtxs {
+        let data = try await httpClient.postInfoRaw(makePayload(type: "metaAndAssetCtxs", additional: ["dex": dex]))
         return try decodeTuple(data, type1: Meta.self, type2: [PerpAssetCtx].self) {
             MetaAndAssetCtxs(meta: $0, assetCtxs: $1)
         }
@@ -174,9 +174,10 @@ public actor InfoAPI {
         return try await httpClient.postInfo(makePayload(type: "fundingHistory", additional: additional))
     }
 
-    public func perpDexs() async throws -> Any {
-        let data = try await httpClient.postInfoRaw(makePayload(type: "perpDexs"))
-        return try JSONSerialization.jsonObject(with: data)
+    /// Retrieve all perp DEXs
+    /// - Returns: Array of PerpDex objects. The first element is nil representing the main crypto DEX.
+    public func perpDexs() async throws -> [PerpDex?] {
+        try await httpClient.postInfo(makePayload(type: "perpDexs"))
     }
 
     // MARK: - User Account APIs
@@ -285,21 +286,26 @@ public actor InfoAPI {
         try await querySubAccounts(user: address)
     }
 
-    public func queryUserToMultiSigSigners(multiSigUser: String) async throws -> Any {
-        let data = try await httpClient.postInfoRaw(
+    /// Query multi-sig signers for a user
+    /// - Parameter multiSigUser: The multi-sig user address
+    /// - Returns: Multi-sig signers configuration, or nil if user is not a multi-sig
+    public func queryUserToMultiSigSigners(multiSigUser: String) async throws -> MultiSigSignersResponse? {
+        try await httpClient.postInfo(
             makePayload(type: "userToMultiSigSigners", additional: ["user": multiSigUser.normalizedAddress]))
-        return try JSONSerialization.jsonObject(with: data)
     }
 
-    public func queryPerpDeployAuctionStatus() async throws -> Any {
-        let data = try await httpClient.postInfoRaw(makePayload(type: "perpDeployAuctionStatus"))
-        return try JSONSerialization.jsonObject(with: data)
+    /// Query perp deploy auction status
+    /// - Returns: Current gas auction status for perp deployment
+    public func queryPerpDeployAuctionStatus() async throws -> PerpDeployAuctionStatus {
+        try await httpClient.postInfo(makePayload(type: "perpDeployAuctionStatus"))
     }
 
-    public func queryUserDexAbstractionState(user: String) async throws -> Any {
-        let data = try await httpClient.postInfoRaw(
+    /// Query user DEX abstraction state
+    /// - Parameter user: The user address
+    /// - Returns: DEX abstraction state, or nil if not configured
+    public func queryUserDexAbstractionState(user: String) async throws -> UserDexAbstractionState? {
+        try await httpClient.postInfo(
             makePayload(type: "userDexAbstraction", additional: ["user": user.normalizedAddress]))
-        return try JSONSerialization.jsonObject(with: data)
     }
 
     public func historicalOrders(user: String) async throws -> [HistoricalOrder] {
@@ -315,10 +321,12 @@ public actor InfoAPI {
         return try await httpClient.postInfo(makePayload(type: "userNonFundingLedgerUpdates", additional: additional))
     }
 
-    public func portfolio(user: String) async throws -> Any {
-        let data = try await httpClient.postInfoRaw(
+    /// Query user portfolio history with account value and PnL over different time periods
+    /// - Parameter user: The user address
+    /// - Returns: Portfolio history data for day, week, month, and allTime periods
+    public func portfolio(user: String) async throws -> UserPortfolioHistory {
+        try await httpClient.postInfo(
             makePayload(type: "portfolio", additional: ["user": user.normalizedAddress]))
-        return try JSONSerialization.jsonObject(with: data)
     }
 
     public func userTwapSliceFills(user: String) async throws -> [TwapSliceFill] {
@@ -339,10 +347,12 @@ public actor InfoAPI {
         try await httpClient.postInfo(makePayload(type: "userRateLimit", additional: ["user": user.normalizedAddress]))
     }
 
-    public func querySpotDeployAuctionStatus(user: String) async throws -> Any {
-        let data = try await httpClient.postInfoRaw(
+    /// Query spot deploy auction status
+    /// - Parameter user: The user address
+    /// - Returns: Spot deploy state including gas auction information
+    public func querySpotDeployAuctionStatus(user: String) async throws -> SpotDeployState {
+        try await httpClient.postInfo(
             makePayload(type: "spotDeployState", additional: ["user": user.normalizedAddress]))
-        return try JSONSerialization.jsonObject(with: data)
     }
 
     public func extraAgents(user: String) async throws -> [ExtraAgent] {

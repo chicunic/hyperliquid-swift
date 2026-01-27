@@ -3,15 +3,28 @@ SWIFT = swift
 SWIFT_BUILD = $(SWIFT) build
 SWIFT_TEST = $(SWIFT) test
 SWIFT_CLEAN = $(SWIFT) package clean
+SOURCES = Sources Tests
 
 # Flags
 BUILD_FLAGS = -c debug -Xswiftc -warnings-as-errors
 TEST_FLAGS = --enable-code-coverage -Xswiftc -warnings-as-errors
 
 # --- Targets ---
-.PHONY: all build release test clean format lint resolve help
+.PHONY: all build release test clean check fix resolve help
 
 all: build
+
+## check: Check code style (SwiftLint + swift-format) - use in CI
+check:
+	@echo "Checking code style..."
+	@swiftlint --config .swiftlint.yml --strict
+	@swift format lint --configuration .swift-format --recursive $(SOURCES)
+
+## fix: Fix code style issues (SwiftLint autocorrect + swift-format)
+fix:
+	@echo "Fixing code style..."
+	@swiftlint --config .swiftlint.yml --fix
+	@swift format --configuration .swift-format --recursive --in-place $(SOURCES)
 
 ## build: Build the project in debug mode
 build:
@@ -38,16 +51,6 @@ clean:
 resolve:
 	@echo "Resolving dependencies..."
 	$(SWIFT) package resolve
-
-## format: Format code using Apple's swift-format
-format:
-	@echo "Formatting code..."
-	swift format --in-place --recursive .
-
-## lint: Check code style using Apple's swift-format
-lint:
-	@echo "Linting code..."
-	swift format lint --recursive .
 
 ## help: Show available commands
 help:

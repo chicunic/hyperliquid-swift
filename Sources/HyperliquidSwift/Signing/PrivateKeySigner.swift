@@ -89,7 +89,7 @@ struct MessageDigest: Digest {
         hasher.combine(data)
     }
 
-    static func == (lhs: MessageDigest, rhs: MessageDigest) -> Bool {
+    static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.data == rhs.data
     }
 
