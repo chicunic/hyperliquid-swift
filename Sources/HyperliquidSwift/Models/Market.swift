@@ -8,6 +8,8 @@ public struct AssetInfo: Codable, Sendable {
     public let name: String
     /// Number of decimals for size
     public let szDecimals: Int
+    /// Maximum leverage allowed for this asset
+    public let maxLeverage: Int
 }
 
 /// Perpetual market metadata
