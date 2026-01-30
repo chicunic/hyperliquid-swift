@@ -8,12 +8,56 @@ public struct AssetInfo: Codable, Sendable {
     public let name: String
     /// Number of decimals for size
     public let szDecimals: Int
+    /// Maximum leverage allowed for this asset
+    public let maxLeverage: Int
+    /// Whether this asset is delisted (optional, defaults to false)
+    public let isDelisted: Bool?
+}
+
+/// Margin tier for leverage calculation
+public struct MarginTier: Codable, Sendable {
+    /// Lower bound of notional value for this tier
+    public let lowerBound: String
+    /// Maximum leverage allowed in this tier
+    public let maxLeverage: Int
+}
+
+/// Margin table entry with description and tiers
+public struct MarginTableInfo: Codable, Sendable {
+    /// Description of the margin table
+    public let description: String
+    /// Leverage tiers based on notional value
+    public let marginTiers: [MarginTier]
+}
+
+/// Margin table: [tableId, info]
+public struct MarginTable: Codable, Sendable {
+    /// Margin table identifier
+    public let tableId: Int
+    /// Margin table information
+    public let info: MarginTableInfo
+
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        tableId = try container.decode(Int.self)
+        info = try container.decode(MarginTableInfo.self)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(tableId)
+        try container.encode(info)
+    }
 }
 
 /// Perpetual market metadata
 public struct Meta: Codable, Sendable {
     /// List of all perpetual assets
     public let universe: [AssetInfo]
+    /// Margin tables for leverage tiers
+    public let marginTables: [MarginTable]?
+    /// Collateral token index (0 = USDC)
+    public let collateralToken: Int?
 }
 
 /// Perpetual asset context (real-time market data)
