@@ -242,6 +242,16 @@ public struct Candle: Codable, Sendable {
     public let v: String
     /// Number of trades
     public let n: Int
+
+    public init(t: Int64, o: String, h: String, l: String, c: String, v: String, n: Int) {
+        self.t = t
+        self.o = o
+        self.h = h
+        self.l = l
+        self.c = c
+        self.v = v
+        self.n = n
+    }
 }
 
 /// Candle interval

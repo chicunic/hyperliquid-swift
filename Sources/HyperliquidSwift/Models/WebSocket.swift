@@ -6,7 +6,7 @@ import Foundation
 /// Reference: Python SDK hyperliquid/utils/types.py
 public enum Subscription: Sendable, Encodable {
     /// Subscribe to all mid prices
-    case allMids
+    case allMids(dex: String?)
     /// Subscribe to best bid/offer for a coin
     case bbo(coin: String)
     /// Subscribe to L2 order book for a coin
@@ -41,8 +41,12 @@ public enum Subscription: Sendable, Encodable {
     /// Convert to dictionary representation
     public var asDictionary: [String: String] {
         switch self {
-        case .allMids:
-            ["type": "allMids"]
+        case .allMids(let dex):
+            if let dex, !dex.isEmpty {
+                ["type": "allMids", "dex": dex]
+            } else {
+                ["type": "allMids"]
+            }
         case .bbo(let coin):
             ["type": "bbo", "coin": coin]
         case .l2Book(let coin):
@@ -74,8 +78,12 @@ public enum Subscription: Sendable, Encodable {
     /// Reference: Python SDK websocket_manager.py:subscription_to_identifier
     public var identifier: String {
         switch self {
-        case .allMids:
-            "allMids"
+        case .allMids(let dex):
+            if let dex, !dex.isEmpty {
+                "allMids:\(dex.lowercased())"
+            } else {
+                "allMids"
+            }
         case .bbo(let coin):
             "bbo:\(coin.lowercased())"
         case .l2Book(let coin):

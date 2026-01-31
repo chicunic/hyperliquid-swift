@@ -11,8 +11,12 @@ struct WebSocketTests {
     @Test("Subscription identifiers are generated correctly")
     func subscriptionIdentifiers() {
         // Test allMids
-        let allMids = Subscription.allMids
+        let allMids = Subscription.allMids(dex: nil)
         #expect(allMids.identifier == "allMids")
+
+        // Test allMids with dex
+        let allMidsDex = Subscription.allMids(dex: "xyz")
+        #expect(allMidsDex.identifier == "allMids:xyz")
 
         // Test l2Book
         let l2Book = Subscription.l2Book(coin: "BTC")
@@ -54,8 +58,12 @@ struct WebSocketTests {
     @Test("Subscription dictionary representation is correct")
     func subscriptionDictionary() {
         // Test allMids
-        let allMids = Subscription.allMids
+        let allMids = Subscription.allMids(dex: nil)
         #expect(allMids.asDictionary == ["type": "allMids"])
+
+        // Test allMids with dex
+        let allMidsDex = Subscription.allMids(dex: "xyz")
+        #expect(allMidsDex.asDictionary == ["type": "allMids", "dex": "xyz"])
 
         // Test l2Book
         let l2Book = Subscription.l2Book(coin: "BTC")
@@ -259,7 +267,7 @@ struct WebSocketTests {
 
         // Subscribe to allMids using a counter actor
         let counter = MessageCounter()
-        let subId = try await manager.subscribe(.allMids) { _, _ in
+        let subId = try await manager.subscribe(.allMids(dex: nil)) { _, _ in
             Task { await counter.increment() }
         }
 
@@ -270,7 +278,7 @@ struct WebSocketTests {
         #expect(count > 0)
 
         // Cleanup
-        _ = try await manager.unsubscribe(.allMids, subscriptionId: subId)
+        _ = try await manager.unsubscribe(.allMids(dex: nil), subscriptionId: subId)
         await manager.stop()
 
         let finalState = await manager.connectionState

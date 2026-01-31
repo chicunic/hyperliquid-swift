@@ -362,7 +362,13 @@ public actor WebSocketManager {
         // Channels with no additional parameters
         switch channel {
         case "pong": return "pong"
-        case "allMids": return "allMids"
+        case "allMids":
+            if let data = json["data"] as? [String: Any],
+                let dex = data["dex"] as? String, !dex.isEmpty
+            {
+                return "allMids:\(dex.lowercased())"
+            }
+            return "allMids"
         case "user": return "userEvents"
         case "orderUpdates": return "orderUpdates"
         default: break
@@ -429,9 +435,10 @@ extension WebSocketManager {
     /// Subscribe to all mid prices
     @discardableResult
     public func subscribeAllMids(
+        dex: String? = nil,
         callback: @escaping @Sendable ([String: String]) -> Void
     ) async throws -> Int {
-        try await subscribe(.allMids) { _, data in
+        try await subscribe(.allMids(dex: dex)) { _, data in
             if let dict = data as? [String: Any],
                 let mids = dict["mids"] as? [String: String]
             {
@@ -515,6 +522,23 @@ extension WebSocketManager {
             if let dict = data as? [String: Any],
                 let jsonData = try? JSONSerialization.data(withJSONObject: dict),
                 let decoded = try? JSONDecoder().decode(CandleData.self, from: jsonData)
+            {
+                callback(decoded)
+            }
+        }
+    }
+
+    /// Subscribe to active asset context for real-time market data
+    @discardableResult
+    public func subscribeActiveAssetCtx(
+        coin: String,
+        callback: @escaping @Sendable (PerpAssetCtx) -> Void
+    ) async throws -> Int {
+        try await subscribe(.activeAssetCtx(coin: coin)) { _, data in
+            if let dict = data as? [String: Any],
+                let ctxDict = dict["ctx"] as? [String: Any],
+                let jsonData = try? JSONSerialization.data(withJSONObject: ctxDict),
+                let decoded = try? JSONDecoder().decode(PerpAssetCtx.self, from: jsonData)
             {
                 callback(decoded)
             }
