@@ -88,19 +88,12 @@ public enum SendableValue: Sendable, Equatable {
     /// Get underlying raw value
     public var rawValue: Any {
         switch self {
-        case .string(let v): v
-        case .int(let v): v
-        case .int64(let v): v
-        case .uint64(let v): v
-        case .bool(let v): v
-        case .data(let v): v
+        case .string(let v): return v
+        case .int(let v): return v
+        case .int64(let v): return v
+        case .uint64(let v): return v
+        case .bool(let v): return v
+        case .data(let v): return v
         }
     }
-
-    public static func from(_ value: String) -> Self { .string(value) }
-    public static func from(_ value: Int) -> Self { .int(value) }
-    public static func from(_ value: Int64) -> Self { .int64(value) }
-    public static func from(_ value: UInt64) -> Self { .uint64(value) }
-    public static func from(_ value: Bool) -> Self { .bool(value) }
-    public static func from(_ value: Data) -> Self { .data(value) }
 }

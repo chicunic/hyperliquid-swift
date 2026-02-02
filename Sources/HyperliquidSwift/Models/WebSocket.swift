@@ -42,35 +42,20 @@ public enum Subscription: Sendable, Encodable {
     public var asDictionary: [String: String] {
         switch self {
         case .allMids(let dex):
-            if let dex, !dex.isEmpty {
-                ["type": "allMids", "dex": dex]
-            } else {
-                ["type": "allMids"]
-            }
-        case .bbo(let coin):
-            ["type": "bbo", "coin": coin]
-        case .l2Book(let coin):
-            ["type": "l2Book", "coin": coin]
-        case .trades(let coin):
-            ["type": "trades", "coin": coin]
-        case .userEvents(let user):
-            ["type": "userEvents", "user": user]
-        case .userFills(let user):
-            ["type": "userFills", "user": user]
-        case .candle(let coin, let interval):
-            ["type": "candle", "coin": coin, "interval": interval]
-        case .orderUpdates(let user):
-            ["type": "orderUpdates", "user": user]
-        case .userFundings(let user):
-            ["type": "userFundings", "user": user]
-        case .userNonFundingLedgerUpdates(let user):
-            ["type": "userNonFundingLedgerUpdates", "user": user]
-        case .webData2(let user):
-            ["type": "webData2", "user": user]
-        case .activeAssetCtx(let coin):
-            ["type": "activeAssetCtx", "coin": coin]
-        case .activeAssetData(let user, let coin):
-            ["type": "activeAssetData", "user": user, "coin": coin]
+            if let dex, !dex.isEmpty { return ["type": "allMids", "dex": dex] }
+            return ["type": "allMids"]
+        case .bbo(let coin): return ["type": "bbo", "coin": coin]
+        case .l2Book(let coin): return ["type": "l2Book", "coin": coin]
+        case .trades(let coin): return ["type": "trades", "coin": coin]
+        case .userEvents(let user): return ["type": "userEvents", "user": user]
+        case .userFills(let user): return ["type": "userFills", "user": user]
+        case .candle(let coin, let interval): return ["type": "candle", "coin": coin, "interval": interval]
+        case .orderUpdates(let user): return ["type": "orderUpdates", "user": user]
+        case .userFundings(let user): return ["type": "userFundings", "user": user]
+        case .userNonFundingLedgerUpdates(let user): return ["type": "userNonFundingLedgerUpdates", "user": user]
+        case .webData2(let user): return ["type": "webData2", "user": user]
+        case .activeAssetCtx(let coin): return ["type": "activeAssetCtx", "coin": coin]
+        case .activeAssetData(let user, let coin): return ["type": "activeAssetData", "user": user, "coin": coin]
         }
     }
 
@@ -79,35 +64,20 @@ public enum Subscription: Sendable, Encodable {
     public var identifier: String {
         switch self {
         case .allMids(let dex):
-            if let dex, !dex.isEmpty {
-                "allMids:\(dex.lowercased())"
-            } else {
-                "allMids"
-            }
-        case .bbo(let coin):
-            "bbo:\(coin.lowercased())"
-        case .l2Book(let coin):
-            "l2Book:\(coin.lowercased())"
-        case .trades(let coin):
-            "trades:\(coin.lowercased())"
-        case .userEvents:
-            "userEvents"
-        case .userFills(let user):
-            "userFills:\(user.lowercased())"
-        case .candle(let coin, let interval):
-            "candle:\(coin.lowercased()),\(interval)"
-        case .orderUpdates:
-            "orderUpdates"
-        case .userFundings(let user):
-            "userFundings:\(user.lowercased())"
-        case .userNonFundingLedgerUpdates(let user):
-            "userNonFundingLedgerUpdates:\(user.lowercased())"
-        case .webData2(let user):
-            "webData2:\(user.lowercased())"
-        case .activeAssetCtx(let coin):
-            "activeAssetCtx:\(coin.lowercased())"
-        case .activeAssetData(let user, let coin):
-            "activeAssetData:\(coin.lowercased()),\(user.lowercased())"
+            if let dex, !dex.isEmpty { return "allMids:\(dex.lowercased())" }
+            return "allMids"
+        case .bbo(let coin): return "bbo:\(coin.lowercased())"
+        case .l2Book(let coin): return "l2Book:\(coin.lowercased())"
+        case .trades(let coin): return "trades:\(coin.lowercased())"
+        case .userEvents: return "userEvents"
+        case .userFills(let user): return "userFills:\(user.lowercased())"
+        case .candle(let coin, let interval): return "candle:\(coin.lowercased()),\(interval)"
+        case .orderUpdates: return "orderUpdates"
+        case .userFundings(let user): return "userFundings:\(user.lowercased())"
+        case .userNonFundingLedgerUpdates(let user): return "userNonFundingLedgerUpdates:\(user.lowercased())"
+        case .webData2(let user): return "webData2:\(user.lowercased())"
+        case .activeAssetCtx(let coin): return "activeAssetCtx:\(coin.lowercased())"
+        case .activeAssetData(let user, let coin): return "activeAssetData:\(coin.lowercased()),\(user.lowercased())"
         }
     }
 }

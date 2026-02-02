@@ -31,8 +31,8 @@ public actor ExchangeAPI {
 
         var address: String {
             switch self {
-            case .hyperliquid(let signer): signer.address
-            case .eip712(let signer): signer.address
+            case .hyperliquid(let signer): return signer.address
+            case .eip712(let signer): return signer.address
             }
         }
 
@@ -115,29 +115,28 @@ public actor ExchangeAPI {
     // MARK: - Internal Helpers
 
     private func postAction(
-        action: Sendable,  // Can be [String: Sendable] or OrderedDictionary<String, Sendable>
+        action: Sendable,
         signature: Signature,
         nonce: Int64
     ) async throws -> Data {
-        let actionDict: [String: Sendable] =
-            (action as? OrderedDictionary<String, Sendable>).map(convertToSerializable)
-            ?? (action as? [String: Sendable] ?? [:])
+        let actionDict: [String: Sendable]
+        if let ordered = action as? OrderedDictionary<String, Sendable> {
+            actionDict = convertToSerializable(ordered)
+        } else {
+            actionDict = action as? [String: Sendable] ?? [:]
+        }
 
-        var payload: [String: Sendable] = [
+        let actionType = actionDict["type"] as? String ?? ""
+        let isUserSignedAction = actionType == "usdClassTransfer" || actionType == "sendAsset"
+        let includeVault = !isUserSignedAction && vaultAddress != nil
+
+        let payload: [String: Sendable] = [
             "action": actionDict,
             "nonce": nonce,
             "signature": signature.asDictionary,
+            "vaultAddress": includeVault ? vaultAddress as Sendable : NSNull(),
+            "expiresAfter": expiresAfter ?? NSNull() as Sendable,
         ]
-
-        let actionType = actionDict["type"] as? String ?? ""
-        // User-signed actions (usdClassTransfer, sendAsset) are account-level and exclude vaultAddress
-        if actionType != "usdClassTransfer", actionType != "sendAsset" {
-            if let vault = vaultAddress { payload["vaultAddress"] = vault } else { payload["vaultAddress"] = NSNull() }
-        } else {
-            payload["vaultAddress"] = NSNull()
-        }
-
-        if let expires = expiresAfter { payload["expiresAfter"] = expires } else { payload["expiresAfter"] = NSNull() }
 
         let jsonData = try JSONSerialization.data(withJSONObject: payload)
         return try await httpClient.postExchangeRawData(jsonData)
@@ -189,12 +188,11 @@ public actor ExchangeAPI {
         cloid: Cloid? = nil,
         builder: BuilderInfo? = nil
     ) async throws -> Data {
-        try await bulkOrders(
-            orders: [
-                OrderRequest(
-                    coin: coin, isBuy: isBuy, sz: sz, limitPx: limitPx, orderType: orderType, reduceOnly: reduceOnly,
-                    cloid: cloid)
-            ], builder: builder)
+        let request = OrderRequest(
+            coin: coin, isBuy: isBuy, sz: sz, limitPx: limitPx,
+            orderType: orderType, reduceOnly: reduceOnly, cloid: cloid
+        )
+        return try await bulkOrders(orders: [request], builder: builder)
     }
 
     public func bulkOrders(
@@ -227,10 +225,11 @@ public actor ExchangeAPI {
         reduceOnly: Bool = false,
         cloid: Cloid? = nil
     ) async throws -> Data {
-        let req = OrderRequest(
-            coin: coin, isBuy: isBuy, sz: sz, limitPx: limitPx, orderType: orderType, reduceOnly: reduceOnly,
-            cloid: cloid)
-        return try await bulkModifyOrders(modifies: [ModifyRequest(oidOrCloid: oid, order: req)])
+        let request = OrderRequest(
+            coin: coin, isBuy: isBuy, sz: sz, limitPx: limitPx,
+            orderType: orderType, reduceOnly: reduceOnly, cloid: cloid
+        )
+        return try await bulkModifyOrders(modifies: [ModifyRequest(oidOrCloid: oid, order: request)])
     }
 
     public func bulkModifyOrders(modifies: [ModifyRequest]) async throws -> Data {
@@ -241,11 +240,11 @@ public actor ExchangeAPI {
             guard let asset = await infoAPI.nameToAsset(modify.order.coin) else {
                 throw HyperliquidError.invalidParameter("Unknown coin: \(modify.order.coin)")
             }
-            let oidValue: Sendable =
-                switch modify.oidOrCloid {
-                case .oid(let oid): oid
-                case .cloid(let cloid): cloid.toRaw()
-                }
+            let oidValue: Sendable
+            switch modify.oidOrCloid {
+            case .oid(let oid): oidValue = oid
+            case .cloid(let cloid): oidValue = cloid.toRaw()
+            }
             modifyWires.append([
                 "oid": oidValue,
                 "order": (try orderRequestToOrderWire(modify.order, asset: asset)).asDictionary,
@@ -745,18 +744,14 @@ public actor ExchangeAPI {
             "dex": dex,
             "assetRequest": assetRequest,
         ]
-        if let maxGas { registerAsset["maxGas"] = maxGas } else { registerAsset["maxGas"] = NSNull() }
+        registerAsset["maxGas"] = maxGas ?? NSNull() as Sendable
 
         if let schema {
-            var schemaWire: [String: Sendable] = [
+            let schemaWire: [String: Sendable] = [
                 "fullName": schema.fullName,
                 "collateralToken": schema.collateralToken,
+                "oracleUpdater": schema.oracleUpdater?.normalizedAddress ?? NSNull() as Sendable,
             ]
-            if let oracleUpdater = schema.oracleUpdater {
-                schemaWire["oracleUpdater"] = oracleUpdater.normalizedAddress
-            } else {
-                schemaWire["oracleUpdater"] = NSNull()
-            }
             registerAsset["schema"] = schemaWire
         } else {
             registerAsset["schema"] = NSNull()
@@ -850,9 +845,10 @@ public actor ExchangeAPI {
         commissionBps: Int?,
         signer: String?
     ) async throws -> Data {
+        let nodeIpDict: Sendable = nodeIp.map { ["Ip": $0] as [String: Sendable] } ?? NSNull()
         let profile: [String: Sendable] = [
             "unjailed": unjailed,
-            "node_ip": nodeIp.map { ["Ip": $0] as [String: Sendable] } ?? NSNull() as Sendable,
+            "node_ip": nodeIpDict,
             "name": name ?? NSNull() as Sendable,
             "description": description ?? NSNull() as Sendable,
             "disable_delegations": disableDelegations ?? NSNull() as Sendable,
@@ -931,29 +927,31 @@ public actor ExchangeAPI {
         slippage: Decimal,
         px: Decimal?
     ) async throws -> Decimal {
-        var price = px
-        if price == nil {
+        let basePrice: Decimal
+        if let px {
+            basePrice = px
+        } else {
             let mids = try await infoAPI.allMids()
-            guard let midString = mids[await infoAPI.getCoin(for: coin) ?? coin],
-                let mid = Decimal(string: midString)
-            else {
+            let coinKey = await infoAPI.getCoin(for: coin) ?? coin
+            guard let midString = mids[coinKey], let mid = Decimal(string: midString) else {
                 throw HyperliquidError.invalidParameter("No mid price for \(coin)")
             }
-            price = mid
+            basePrice = mid
         }
 
-        guard var finalPrice = price else { throw HyperliquidError.invalidParameter("Could not determine price") }
-        finalPrice *= (isBuy ? 1 + slippage : 1 - slippage)
+        let slippageMultiplier = isBuy ? (1 + slippage) : (1 - slippage)
+        let adjustedPrice = basePrice * slippageMultiplier
 
         guard let asset = await infoAPI.nameToAsset(coin) else {
             throw HyperliquidError.invalidParameter("Unknown coin: \(coin)")
         }
 
-        return roundToSignificantFigures(finalPrice, sigFigs: 5, maxDecimals: asset >= 10000 ? 8 : 6)
+        let maxDecimals = asset >= 10000 ? 8 : 6
+        return roundPrice(adjustedPrice, maxDecimals: maxDecimals)
     }
 
-    private func roundToSignificantFigures(_ value: Decimal, sigFigs: Int, maxDecimals: Int) -> Decimal {
-        let behavior = NSDecimalNumberHandler(
+    private func roundPrice(_ value: Decimal, maxDecimals: Int) -> Decimal {
+        let handler = NSDecimalNumberHandler(
             roundingMode: .plain,
             scale: Int16(maxDecimals),
             raiseOnExactness: false,
@@ -961,6 +959,6 @@ public actor ExchangeAPI {
             raiseOnUnderflow: false,
             raiseOnDivideByZero: false
         )
-        return (value as NSDecimalNumber).rounding(accordingToBehavior: behavior) as Decimal
+        return (value as NSDecimalNumber).rounding(accordingToBehavior: handler) as Decimal
     }
 }

@@ -8,47 +8,47 @@ extension Decimal {
     /// - Returns: String representation with up to 8 decimal places, trailing zeros removed
     /// - Throws: If rounding causes precision loss >= 1e-12
     public func toWireString() throws -> String {
-        // Round to 8 decimal places
-        let behavior = NSDecimalNumberHandler(
+        let rounded = roundToScale(8)
+        try validatePrecision(rounded: rounded, threshold: -12)
+
+        let result = (rounded as NSDecimalNumber).stringValue
+        if result == "-0" || result == "-0.0" {
+            return "0"
+        }
+
+        return trimTrailingZeros(result)
+    }
+
+    private func roundToScale(_ scale: Int16) -> Decimal {
+        let handler = NSDecimalNumberHandler(
             roundingMode: .plain,
-            scale: 8,
+            scale: scale,
             raiseOnExactness: false,
             raiseOnOverflow: false,
             raiseOnUnderflow: false,
             raiseOnDivideByZero: false
         )
+        return (self as NSDecimalNumber).rounding(accordingToBehavior: handler) as Decimal
+    }
 
-        let nsDecimal = self as NSDecimalNumber
-        let rounded = nsDecimal.rounding(accordingToBehavior: behavior)
-
-        // Check precision loss
-        let difference = abs((rounded as Decimal) - self)
-        let threshold = Decimal(sign: .plus, exponent: -12, significand: 1)  // 1e-12
-
-        if difference >= threshold {
+    private func validatePrecision(rounded: Decimal, threshold: Int) throws {
+        let difference = abs(rounded - self)
+        let maxDifference = Decimal(sign: .plus, exponent: threshold, significand: 1)
+        if difference >= maxDifference {
             throw HyperliquidError.precisionLoss(value: self)
         }
+    }
 
-        // Convert to string and normalize
-        var result = rounded.stringValue
+    private func trimTrailingZeros(_ value: String) -> String {
+        var result = value
+        guard result.contains(".") else { return result }
 
-        // Handle "-0" case
-        if result == "-0" || result == "-0.0" {
-            return "0"
+        while result.hasSuffix("0") {
+            result.removeLast()
         }
-
-        // Remove trailing zeros after decimal point
-        if result.contains(".") {
-            // Remove trailing zeros
-            while result.hasSuffix("0") {
-                result.removeLast()
-            }
-            // Remove trailing decimal point
-            if result.hasSuffix(".") {
-                result.removeLast()
-            }
+        if result.hasSuffix(".") {
+            result.removeLast()
         }
-
         return result
     }
 
@@ -74,45 +74,25 @@ extension Decimal {
     /// - Throws: HyperliquidError.precisionLoss if rounding causes precision loss
     public func toInt(power: Int) throws -> BigInt {
         let multiplier = Decimal(sign: .plus, exponent: power, significand: 1)
-        let withDecimals = self * multiplier
+        let scaled = self * multiplier
+        let rounded = scaled.roundToScale(0)
 
-        // Round to integer
-        let handler = NSDecimalNumberHandler(
-            roundingMode: .plain,
-            scale: 0,
-            raiseOnExactness: false,
-            raiseOnOverflow: false,
-            raiseOnUnderflow: false,
-            raiseOnDivideByZero: false
-        )
-        let rounded = NSDecimalNumber(decimal: withDecimals).rounding(accordingToBehavior: handler)
-        let roundedDecimal = rounded as Decimal
-
-        // Check precision loss
-        let difference = abs(withDecimals - roundedDecimal)
-        let threshold = Decimal(string: "0.001")!  // 1e-3
-
-        if difference >= threshold {
+        let difference = abs(scaled - rounded)
+        if difference >= Decimal(string: "0.001")! {
             throw HyperliquidError.precisionLoss(value: self)
         }
 
-        return BigInt(rounded.stringValue)!
+        return BigInt((rounded as NSDecimalNumber).stringValue)!
     }
 }
 
 extension Double {
     /// Convert Double to wire format string
-    public func toWireString() throws -> String {
-        try Decimal(self).toWireString()
-    }
+    public func toWireString() throws -> String { try Decimal(self).toWireString() }
 
     /// Convert Double to BigInt for hashing
-    public func toIntForHashing() throws -> BigInt {
-        try Decimal(self).toIntForHashing()
-    }
+    public func toIntForHashing() throws -> BigInt { try Decimal(self).toIntForHashing() }
 
     /// Convert Double to USD integer
-    public func toUSDInt() throws -> BigInt {
-        try Decimal(self).toUSDInt()
-    }
+    public func toUSDInt() throws -> BigInt { try Decimal(self).toUSDInt() }
 }

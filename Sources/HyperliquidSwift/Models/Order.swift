@@ -80,9 +80,7 @@ public struct CancelByCloidRequest: Sendable {
 }
 
 public enum OrderGrouping: String, Sendable {
-    case na
-    case normalTpsl
-    case positionTpsl
+    case na, normalTpsl, positionTpsl
 }
 
 public struct BuilderInfo: Sendable, OrderedDictionaryConvertible {

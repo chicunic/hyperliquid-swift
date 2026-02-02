@@ -37,16 +37,8 @@ public enum SubDeployerEntry: Codable, Sendable {
         let container = try decoder.singleValueContainer()
         if let stringValue = try? container.decode(String.self) {
             self = .string(stringValue)
-        } else if let arrayValue = try? container.decode([String].self) {
-            self = .addresses(arrayValue)
         } else {
-            throw DecodingError.typeMismatch(
-                Self.self,
-                DecodingError.Context(
-                    codingPath: decoder.codingPath,
-                    debugDescription: "Expected String or [String]"
-                )
-            )
+            self = .addresses(try container.decode([String].self))
         }
     }
 
@@ -167,16 +159,8 @@ public enum UserPortfolioHistoryEntry: Codable, Sendable {
         let container = try decoder.singleValueContainer()
         if let intValue = try? container.decode(Int64.self) {
             self = .timestamp(intValue)
-        } else if let stringValue = try? container.decode(String.self) {
-            self = .value(stringValue)
         } else {
-            throw DecodingError.typeMismatch(
-                Self.self,
-                DecodingError.Context(
-                    codingPath: decoder.codingPath,
-                    debugDescription: "Expected Int64 or String"
-                )
-            )
+            self = .value(try container.decode(String.self))
         }
     }
 

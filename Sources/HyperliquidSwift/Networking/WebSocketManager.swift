@@ -2,10 +2,7 @@ import Foundation
 
 /// WebSocket connection state
 public enum WebSocketState: Sendable {
-    case disconnected
-    case connecting
-    case connected
-    case disconnecting
+    case disconnected, connecting, connected, disconnecting
 }
 
 /// WebSocket error types
@@ -49,14 +46,16 @@ public actor WebSocketManager {
     /// Initialize WebSocket manager with base URL
     /// - Parameter baseURL: HTTP base URL (will be converted to ws://)
     public init(baseURL: String) {
-        // Convert http(s) to ws(s)
-        var wsURL = baseURL
-        if wsURL.hasPrefix("https://") {
-            wsURL = "wss://" + wsURL.dropFirst(8)
-        } else if wsURL.hasPrefix("http://") {
-            wsURL = "ws://" + wsURL.dropFirst(7)
+        self.baseURL = Self.convertToWebSocketURL(baseURL) + "/ws"
+    }
+
+    private static func convertToWebSocketURL(_ url: String) -> String {
+        if url.hasPrefix("https://") {
+            return "wss://" + url.dropFirst(8)
+        } else if url.hasPrefix("http://") {
+            return "ws://" + url.dropFirst(7)
         }
-        self.baseURL = wsURL + "/ws"
+        return url
     }
 
     /// Initialize with network
@@ -203,20 +202,17 @@ public actor WebSocketManager {
         let identifier = subscription.identifier
 
         // Check for single-subscription channels
-        if identifier == "userEvents" || identifier == "orderUpdates" {
-            if let existing = activeSubscriptions[identifier], !existing.isEmpty {
-                throw WebSocketError.alreadySubscribed("Cannot subscribe to \(identifier) multiple times")
-            }
+        let isSingleSubscriptionChannel = identifier == "userEvents" || identifier == "orderUpdates"
+        if isSingleSubscriptionChannel, let existing = activeSubscriptions[identifier], !existing.isEmpty {
+            throw WebSocketError.alreadySubscribed("Cannot subscribe to \(identifier) multiple times")
         }
 
-        // Add to active subscriptions
         let activeSub = ActiveSubscription(callback: callback, subscriptionId: subscriptionId)
-        if activeSubscriptions[identifier] != nil {
-            activeSubscriptions[identifier]?.append(activeSub)
-        } else {
-            activeSubscriptions[identifier] = [activeSub]
+        let isFirstSubscriber = activeSubscriptions[identifier] == nil
 
-            // Send subscribe message only for first subscriber
+        activeSubscriptions[identifier, default: []].append(activeSub)
+
+        if isFirstSubscriber {
             let message: [String: Any] = [
                 "method": "subscribe",
                 "subscription": subscription.asDictionary,
@@ -314,43 +310,31 @@ public actor WebSocketManager {
     }
 
     private func handleMessage(_ message: String) async {
-        // Handle connection established message
         if message == "Websocket connection established." {
             return
         }
 
-        // Parse JSON
         guard let data = message.data(using: .utf8),
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let channelString = json["channel"] as? String
+            let channelString = json["channel"] as? String,
+            channelString != "pong"
         else {
             return
         }
 
-        // Handle pong
-        if channelString == "pong" {
-            return
-        }
-
-        // Get identifier from message
         guard let identifier = identifierFromMessage(json, channel: channelString) else {
             print("Unknown message identifier for channel: \(channelString)")
             return
         }
 
-        // Get subscribers
         guard let subscribers = activeSubscriptions[identifier] else {
             print("Received message for unknown subscription: \(identifier)")
             return
         }
 
-        // Parse channel
         let channel = WsChannel(rawValue: channelString) ?? .error
-
-        // Get data
         let messageData = json["data"] ?? json
 
-        // Notify subscribers
         for subscriber in subscribers {
             subscriber.callback(channel, messageData)
         }

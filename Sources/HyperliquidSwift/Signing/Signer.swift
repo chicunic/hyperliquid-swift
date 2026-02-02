@@ -16,11 +16,7 @@ public struct Signature: Sendable {
 
     /// Convert to dictionary format for API
     public var asDictionary: [String: Sendable] {
-        [
-            "r": r.hexString,
-            "s": s.hexString,
-            "v": Int(v),
-        ]
+        ["r": r.hexString, "s": s.hexString, "v": Int(v)]
     }
 }
 
@@ -54,10 +50,6 @@ extension Signature {
 
     /// Convert to 0x-prefixed hex string (65 bytes: r + s + v)
     public func toHexString() -> String {
-        var data = Data()
-        data.append(r)
-        data.append(s)
-        data.append(v)
-        return data.hexString
+        (r + s + Data([v])).hexString
     }
 }

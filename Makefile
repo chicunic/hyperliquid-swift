@@ -34,7 +34,7 @@ build:
 ## release: Build the project in release mode
 release:
 	@echo "Building for release..."
-	$(SWIFT_BUILD) -c release
+	$(SWIFT_BUILD) -c release -Xswiftc -warnings-as-errors
 
 ## test: Run all unit tests
 test:

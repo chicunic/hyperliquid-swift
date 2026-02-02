@@ -109,14 +109,11 @@ public enum EVMContract: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        // Try to decode as string first
         if let address = try? container.decode(String.self) {
             self = .address(address)
-            return
+        } else {
+            self = .full(try container.decode(EvmContractInfo.self))
         }
-        // Try to decode as object
-        let info = try container.decode(EvmContractInfo.self)
-        self = .full(info)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -132,8 +129,8 @@ public enum EVMContract: Codable, Sendable {
     /// Get the address regardless of format
     public var address: String {
         switch self {
-        case .address(let addr): addr
-        case .full(let info): info.address
+        case .address(let addr): return addr
+        case .full(let info): return info.address
         }
     }
 }

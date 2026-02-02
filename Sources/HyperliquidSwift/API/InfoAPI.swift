@@ -39,31 +39,14 @@ public actor InfoAPI {
             wsManager = manager
         }
 
-        // Load spot meta
         let loadedSpotMeta: SpotMeta
         if let spotMeta {
             loadedSpotMeta = spotMeta
         } else {
             loadedSpotMeta = try await self.spotMeta()
         }
+        setSpotMeta(loadedSpotMeta)
 
-        // Set up spot asset mappings (spot assets start at 10000)
-        for spotInfo in loadedSpotMeta.universe {
-            let asset = spotInfo.index + 10000
-            coinToAsset[spotInfo.name] = asset
-            nameToCoin[spotInfo.name] = spotInfo.name
-
-            let baseToken = loadedSpotMeta.tokens[spotInfo.tokens[0]]
-            let quoteToken = loadedSpotMeta.tokens[spotInfo.tokens[1]]
-            assetToSzDecimals[asset] = baseToken.szDecimals
-
-            let pairName = "\(baseToken.name)/\(quoteToken.name)"
-            if nameToCoin[pairName] == nil {
-                nameToCoin[pairName] = spotInfo.name
-            }
-        }
-
-        // Load perp meta
         let loadedMeta: Meta
         if let meta {
             loadedMeta = meta
@@ -71,6 +54,23 @@ public actor InfoAPI {
             loadedMeta = try await self.meta()
         }
         setPerpMeta(loadedMeta, offset: 0)
+    }
+
+    private func setSpotMeta(_ spotMeta: SpotMeta) {
+        for spotInfo in spotMeta.universe {
+            let asset = spotInfo.index + 10000
+            coinToAsset[spotInfo.name] = asset
+            nameToCoin[spotInfo.name] = spotInfo.name
+
+            let baseToken = spotMeta.tokens[spotInfo.tokens[0]]
+            let quoteToken = spotMeta.tokens[spotInfo.tokens[1]]
+            assetToSzDecimals[asset] = baseToken.szDecimals
+
+            let pairName = "\(baseToken.name)/\(quoteToken.name)"
+            if nameToCoin[pairName] == nil {
+                nameToCoin[pairName] = spotInfo.name
+            }
+        }
     }
 
     private func setPerpMeta(_ meta: Meta, offset: Int) {
@@ -85,8 +85,7 @@ public actor InfoAPI {
     // MARK: - Asset/Coin Mapping
 
     public func nameToAsset(_ name: String) -> Int? {
-        guard let coin = nameToCoin[name] else { return nil }
-        return coinToAsset[coin]
+        nameToCoin[name].flatMap { coinToAsset[$0] }
     }
 
     public func getCoin(for name: String) -> String? {
@@ -232,6 +231,7 @@ public actor InfoAPI {
             makePayload(type: "delegatorSummary", additional: ["user": address.normalizedAddress]))
     }
 
+    /// Alias for userStakingSummary
     public func delegatorSummary(address: String) async throws -> StakingSummary {
         try await userStakingSummary(address: address)
     }
@@ -255,6 +255,7 @@ public actor InfoAPI {
             makePayload(type: "orderStatus", additional: ["user": user.normalizedAddress, "oid": oid]))
     }
 
+    /// Alias for queryOrderByOid
     public func orderStatus(address: String, oid: Int64) async throws -> OrderStatus {
         try await queryOrderByOid(user: address, oid: oid)
     }
@@ -268,6 +269,7 @@ public actor InfoAPI {
         try await httpClient.postInfo(makePayload(type: "referral", additional: ["user": user.normalizedAddress]))
     }
 
+    /// Alias for queryReferralState
     public func referralState(address: String) async throws -> ReferralState {
         try await queryReferralState(user: address)
     }
@@ -275,13 +277,14 @@ public actor InfoAPI {
     public func querySubAccounts(user: String) async throws -> [SubAccount] {
         let data = try await httpClient.postInfoRaw(
             makePayload(type: "subAccounts", additional: ["user": user.normalizedAddress]))
-        if let str = String(data: data, encoding: .utf8), str.trimmingCharacters(in: .whitespacesAndNewlines) == "null"
-        {
+        let trimmed = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed == "null" {
             return []
         }
         return try JSONDecoder().decode([SubAccount].self, from: data)
     }
 
+    /// Alias for querySubAccounts
     public func subAccounts(address: String) async throws -> [SubAccount] {
         try await querySubAccounts(user: address)
     }
@@ -364,15 +367,18 @@ public actor InfoAPI {
     @discardableResult
     public func subscribe(_ subscription: Subscription, callback: @escaping SubscriptionCallback) async throws -> Int {
         let remappedSubscription = remapCoinSubscription(subscription)
-        let manager: WebSocketManager
-        if let existing = wsManager {
-            manager = existing
-        } else {
-            manager = WebSocketManager(network: network)
-            try await manager.start()
-            wsManager = manager
-        }
+        let manager = try await getOrCreateWebSocketManager()
         return try await manager.subscribe(remappedSubscription, callback: callback)
+    }
+
+    private func getOrCreateWebSocketManager() async throws -> WebSocketManager {
+        if let existing = wsManager {
+            return existing
+        }
+        let manager = WebSocketManager(network: network)
+        try await manager.start()
+        wsManager = manager
+        return manager
     }
 
     @discardableResult

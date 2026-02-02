@@ -26,7 +26,7 @@ Add the package to your `Package.swift` dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/chicunic/hyperliquid-swift.git", from: "0.2.0")
+    .package(url: "https://github.com/chicunic/hyperliquid-swift.git", branch: "main")
 ]
 ```
 
@@ -96,14 +96,49 @@ print("Order placed: \(result)")
 try await client.exchange.cancel(coin: "ETH", oid: 123456)
 ```
 
+### WebSocket API (Real-time Data)
+
+Subscribe to real-time market data and account updates.
+
+```swift
+import HyperliquidSwift
+
+let info = try await InfoAPI(network: .mainnet)
+
+// Subscribe to all mid prices
+let subId = try await info.subscribe(.allMids(dex: nil)) { channel, data in
+    print("Channel: \(channel), Data: \(data)")
+}
+
+// Subscribe to L2 order book
+try await info.subscribe(.l2Book(coin: "BTC")) { channel, data in
+    // Handle order book updates
+}
+
+// Subscribe to user fills
+try await info.subscribe(.userFills(user: "0x...")) { channel, data in
+    // Handle fill notifications
+}
+
+// Unsubscribe when done
+try await info.unsubscribe(.allMids(dex: nil), subscriptionId: subId)
+```
+
 ## Features
 
 ### 📊 Info API
 
-- **Market Data:** `getAllMids`, `getL2Book`, `getCandleSnapshot`
-- **Account Info:** `getUserState`, `getSpotUserState`, `getUserFills`
-- **Metadata:** `getMeta`, `getSpotMeta`, `getMetaAndAssetCtxs`
-- **Orders:** `getOpenOrders`, `queryOrderByOid`
+- **Market Data:** `allMids`, `l2Snapshot`, `candlesSnapshot`
+- **Account Info:** `userState`, `spotUserState`, `userFills`
+- **Metadata:** `meta`, `spotMeta`, `metaAndAssetCtxs` (with margin tables)
+- **Orders:** `openOrders`, `queryOrderByOid`
+- **Multi-DEX Support:** Query data from specific DEXs via `dex` parameter
+
+### 🔌 WebSocket API
+
+- **Market Streams:** `allMids`, `l2Book`, `bbo`, `trades`, `candle`, `activeAssetCtx`
+- **User Streams:** `userEvents`, `userFills`, `orderUpdates`, `userFundings`
+- **Advanced:** `webData2`, `activeAssetData`
 
 ### ⚡ Exchange API
 

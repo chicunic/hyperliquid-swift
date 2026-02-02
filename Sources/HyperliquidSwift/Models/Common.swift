@@ -17,13 +17,10 @@ public enum HyperliquidError: Error, Sendable {
 public struct Cloid: Sendable, Hashable, Codable {
     private let rawValue: String
 
-    /// Initialize with a raw CLOID string (must be valid hex without 0x prefix, 32 chars)
+    /// Initialize with a raw CLOID string (must be valid hex, 32 chars without 0x prefix)
     public init?(rawValue: String) {
-        // Validate: must be 16 bytes (32 hex chars)
-        let cleaned = rawValue.hasPrefix("0x") ? String(rawValue.dropFirst(2)) : rawValue
-        guard cleaned.count == 32,
-            cleaned.allSatisfy(\.isHexDigit)
-        else {
+        let cleaned = Self.stripHexPrefix(rawValue)
+        guard cleaned.count == 32, cleaned.allSatisfy(\.isHexDigit) else {
             return nil
         }
         self.rawValue = cleaned
@@ -38,25 +35,24 @@ public struct Cloid: Sendable, Hashable, Codable {
     }
 
     /// Hex string with 0x prefix (matches Python SDK format for wire)
-    public func toRaw() -> String {
-        "0x" + rawValue
-    }
+    public func toRaw() -> String { hexString }
 
     /// Hex string with 0x prefix
-    public var hexString: String {
-        "0x" + rawValue
-    }
+    public var hexString: String { "0x" + rawValue }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let value = try container.decode(String.self)
-        let cleaned = value.hasPrefix("0x") ? String(value.dropFirst(2)) : value
-        rawValue = cleaned
+        rawValue = Self.stripHexPrefix(value)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode("0x" + rawValue)
+        try container.encode(hexString)
+    }
+
+    private static func stripHexPrefix(_ value: String) -> String {
+        value.hasPrefix("0x") ? String(value.dropFirst(2)) : value
     }
 }
 
@@ -78,18 +74,14 @@ public enum TpSl: String, Sendable, Codable {
 
 /// Order side
 public enum OrderSide: Sendable {
-    case buy
-    case sell
+    case buy, sell
 
-    public var isBuy: Bool {
-        self == .buy
-    }
+    public var isBuy: Bool { self == .buy }
 }
 
 /// Asset type
 public enum AssetType: String, Sendable, Codable {
-    case perp
-    case spot
+    case perp, spot
 }
 
 /// Generate current timestamp in milliseconds

@@ -34,21 +34,11 @@ public enum HyperliquidNetwork: String, Sendable {
     case testnet = "Testnet"
 
     public var baseURL: String {
-        switch self {
-        case .mainnet:
-            HyperliquidConstants.mainnetAPIURL
-        case .testnet:
-            HyperliquidConstants.testnetAPIURL
-        }
+        self == .mainnet ? HyperliquidConstants.mainnetAPIURL : HyperliquidConstants.testnetAPIURL
     }
 
     /// Source indicator for phantom agent (a = mainnet, b = testnet)
     public var sourceIndicator: String {
-        switch self {
-        case .mainnet:
-            "a"
-        case .testnet:
-            "b"
-        }
+        self == .mainnet ? "a" : "b"
     }
 }

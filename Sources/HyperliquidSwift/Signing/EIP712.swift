@@ -214,10 +214,12 @@ public enum EIP712 {
     }
 
     private static func convertToSendableValue(_ value: Sendable, type: String) -> SendableValue {
-        // Precise matching first
+        // Type-specific matching
         switch type {
-        case "string", "address": if let s = value as? String { return .string(s) }
-        case "bool": if let b = value as? Bool { return .bool(b) }
+        case "string", "address":
+            if let s = value as? String { return .string(s) }
+        case "bool":
+            if let b = value as? Bool { return .bool(b) }
         case "uint64":
             if let u = value as? UInt64 { return .uint64(u) }
             if let i = value as? Int64 { return .int64(i) }
@@ -227,10 +229,11 @@ public enum EIP712 {
             if let s = value as? String { return .string(s) }
         case "bytes32":
             if let d = value as? Data { return .data(d) }
-        default: break
+        default:
+            break
         }
 
-        // Fallback matching
+        // Fallback: try common types in order
         if let s = value as? String { return .string(s) }
         if let i = value as? Int { return .int(i) }
         if let i = value as? Int64 { return .int64(i) }
