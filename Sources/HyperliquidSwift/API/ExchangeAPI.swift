@@ -921,6 +921,7 @@ public actor ExchangeAPI {
         )
     }
 
+    /// Round to 5 significant figures, then to (maxDecimals - szDecimals) decimal places
     private func calculateSlippagePrice(
         coin: String,
         isBuy: Bool,
@@ -946,14 +947,39 @@ public actor ExchangeAPI {
             throw HyperliquidError.invalidParameter("Unknown coin: \(coin)")
         }
 
-        let maxDecimals = asset >= 10000 ? 8 : 6
-        return roundPrice(adjustedPrice, maxDecimals: maxDecimals)
+        let isSpot = asset >= 10000
+        let maxDecimals = isSpot ? 8 : 6
+        let szDecimals = await infoAPI.getSzDecimals(for: asset) ?? 0
+
+        // Match Python: round(float(f"{px:.5g}"), maxDecimals - szDecimals)
+        let sig5 = roundToSignificantFigures(adjustedPrice, figures: 5)
+        return roundToScale(sig5, scale: maxDecimals - szDecimals)
     }
 
-    private func roundPrice(_ value: Decimal, maxDecimals: Int) -> Decimal {
+    /// Round a Decimal to N significant figures (matching Python's f"{x:.5g}")
+    private func roundToSignificantFigures(_ value: Decimal, figures: Int) -> Decimal {
+        guard value != 0 else { return 0 }
+        let absValue = abs(value)
+        let d = Double(truncating: absValue as NSDecimalNumber)
+        let digits = Int(floor(log10(d))) + 1
+        let scale = figures - digits
+
         let handler = NSDecimalNumberHandler(
             roundingMode: .plain,
-            scale: Int16(maxDecimals),
+            scale: Int16(scale),
+            raiseOnExactness: false,
+            raiseOnOverflow: false,
+            raiseOnUnderflow: false,
+            raiseOnDivideByZero: false
+        )
+        return (value as NSDecimalNumber).rounding(accordingToBehavior: handler) as Decimal
+    }
+
+    /// Round to a specific number of decimal places
+    private func roundToScale(_ value: Decimal, scale: Int) -> Decimal {
+        let handler = NSDecimalNumberHandler(
+            roundingMode: .plain,
+            scale: Int16(max(scale, 0)),
             raiseOnExactness: false,
             raiseOnOverflow: false,
             raiseOnUnderflow: false,

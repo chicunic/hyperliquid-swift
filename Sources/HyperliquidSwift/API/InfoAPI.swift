@@ -92,6 +92,10 @@ public actor InfoAPI {
         nameToCoin[name]
     }
 
+    public func getSzDecimals(for asset: Int) -> Int? {
+        assetToSzDecimals[asset]
+    }
+
     // MARK: - Helper
 
     private func makePayload(type: String, additional: [String: Sendable] = [:]) -> [String: Sendable] {
