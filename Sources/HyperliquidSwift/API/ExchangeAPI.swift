@@ -83,7 +83,7 @@ public actor ExchangeAPI {
         vaultAddress: String? = nil,
         accountAddress: String? = nil
     ) async throws {
-        self.init(type: .hyperliquid(signer), network: network, vault: vaultAddress, account: accountAddress)
+        try await self.init(type: .hyperliquid(signer), network: network, vault: vaultAddress, account: accountAddress)
     }
 
     /// Initialize Exchange API with EIP712Signer
@@ -93,7 +93,7 @@ public actor ExchangeAPI {
         vaultAddress: String? = nil,
         accountAddress: String? = nil
     ) async throws {
-        self.init(type: .eip712(eip712Signer), network: network, vault: vaultAddress, account: accountAddress)
+        try await self.init(type: .eip712(eip712Signer), network: network, vault: vaultAddress, account: accountAddress)
     }
 
     private init(
@@ -101,13 +101,13 @@ public actor ExchangeAPI {
         network: HyperliquidNetwork,
         vault: String?,
         account: String?
-    ) {
+    ) async throws {
         self.signerType = type
         self.network = network
         self.httpClient = HTTPClient(baseURL: network.baseURL)
         self.vaultAddress = vault?.normalizedAddress
         self.accountAddress = account?.normalizedAddress
-        self.infoAPI = InfoAPI(network: network)
+        self.infoAPI = try await InfoAPI(network: network)
     }
 
     private var isMainnet: Bool { network == .mainnet }
