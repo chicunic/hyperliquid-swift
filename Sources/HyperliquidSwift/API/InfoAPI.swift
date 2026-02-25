@@ -315,6 +315,14 @@ public actor InfoAPI {
             makePayload(type: "userDexAbstraction", additional: ["user": user.normalizedAddress]))
     }
 
+    /// Query user abstraction state
+    /// - Parameter user: The user address
+    /// - Returns: Raw response data
+    public func queryUserAbstractionState(user: String) async throws -> Data {
+        try await httpClient.postInfoRaw(
+            makePayload(type: "userAbstraction", additional: ["user": user.normalizedAddress]))
+    }
+
     public func historicalOrders(user: String) async throws -> [HistoricalOrder] {
         try await httpClient.postInfo(
             makePayload(type: "historicalOrders", additional: ["user": user.normalizedAddress]))

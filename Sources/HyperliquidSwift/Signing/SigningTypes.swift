@@ -84,6 +84,13 @@ public let userDexAbstractionSignTypes: [TypedVariable] = [
     TypedVariable(name: "nonce", type: "uint64"),
 ]
 
+public let userSetAbstractionSignTypes: [TypedVariable] = [
+    TypedVariable(name: "hyperliquidChain", type: "string"),
+    TypedVariable(name: "user", type: "address"),
+    TypedVariable(name: "abstraction", type: "string"),
+    TypedVariable(name: "nonce", type: "uint64"),
+]
+
 public let convertToMultiSigUserSignTypes: [TypedVariable] = [
     TypedVariable(name: "hyperliquidChain", type: "string"),
     TypedVariable(name: "signers", type: "string"),
@@ -108,6 +115,7 @@ public enum UserSignedPrimaryType: String, Sendable {
     case approveAgent = "HyperliquidTransaction:ApproveAgent"
     case approveBuilderFee = "HyperliquidTransaction:ApproveBuilderFee"
     case userDexAbstraction = "HyperliquidTransaction:UserDexAbstraction"
+    case userSetAbstraction = "HyperliquidTransaction:UserSetAbstraction"
     case convertToMultiSigUser = "HyperliquidTransaction:ConvertToMultiSigUser"
     case multiSigEnvelope = "HyperliquidTransaction:SendMultiSig"
 }

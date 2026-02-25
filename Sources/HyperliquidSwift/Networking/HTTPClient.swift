@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.finno.wallet", category: "HyperliquidHTTP")
 
 /// HTTP client for Hyperliquid API requests
 public actor HTTPClient {
@@ -95,6 +98,8 @@ public actor HTTPClient {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
+            let respStr = String(data: data, encoding: .utf8) ?? ""
+            logger.error("HTTP \(httpResponse.statusCode) response: \(respStr)")
             throw HyperliquidError.apiError(
                 status: "HTTP \(httpResponse.statusCode)",
                 response: String(data: data, encoding: .utf8)

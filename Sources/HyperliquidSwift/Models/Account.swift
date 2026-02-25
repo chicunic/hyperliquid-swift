@@ -14,6 +14,8 @@ public struct UserState: Codable, Sendable {
     public let withdrawable: String
     /// Cross maintenance margin used
     public let crossMaintenanceMarginUsed: String
+    /// Server timestamp
+    public let time: Int64?
 }
 
 /// Asset position
@@ -36,8 +38,6 @@ public struct Position: Codable, Sendable {
     public let liquidationPx: String?
     /// Margin used
     public let marginUsed: String
-    /// Max trade sizes [buy, sell]
-    public let maxTradeSzs: [String]
     /// Position value
     public let positionValue: String
     /// Return on equity
@@ -46,6 +46,10 @@ public struct Position: Codable, Sendable {
     public let szi: String
     /// Unrealized PnL
     public let unrealizedPnl: String
+    /// Max leverage
+    public let maxLeverage: Int?
+    /// Max trade sizes [buy, sell]
+    public let maxTradeSzs: [String]?
     /// Cumulative funding
     public let cumFunding: CumulativeFunding?
 }

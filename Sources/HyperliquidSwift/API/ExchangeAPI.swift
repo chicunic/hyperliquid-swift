@@ -1,6 +1,14 @@
 import Foundation
 import OrderedCollections
 
+/// Extract dex prefix from coin name (e.g. "DEXNAME:COIN" → "DEXNAME")
+private func getDex(_ coin: String) -> String {
+    if let colonIndex = coin.firstIndex(of: ":") {
+        return String(coin[coin.startIndex..<colonIndex])
+    }
+    return ""
+}
+
 /// Exchange API for trading operations on Hyperliquid. Reference: Python SDK hyperliquid/exchange.py
 public actor ExchangeAPI {
     private let httpClient: HTTPClient
@@ -360,7 +368,7 @@ public actor ExchangeAPI {
         var strAmount = try amount.toWireString()
         if let vaultAddress { strAmount += " subaccount:\(vaultAddress)" }
 
-        let action: [String: Sendable] = [
+        var action: [String: Sendable] = [
             "type": "usdClassTransfer",
             "amount": strAmount,
             "toPerp": toPerp,
@@ -373,6 +381,8 @@ public actor ExchangeAPI {
             primaryType: .usdClassTransfer,
             isMainnet: isMainnet
         )
+        action["signatureChainId"] = HyperliquidConstants.UserSignedDomain.signatureChainIdHex
+        action["hyperliquidChain"] = isMainnet ? "Mainnet" : "Testnet"
         return try await postAction(action: action, signature: signature, nonce: timestamp)
     }
 
@@ -380,7 +390,7 @@ public actor ExchangeAPI {
         destination: String, sourceDex: String = "", destinationDex: String = "", token: String, amount: Decimal
     ) async throws -> Data {
         let timestamp = currentTimestampMs()
-        let action: [String: Sendable] = [
+        var action: [String: Sendable] = [
             "type": "sendAsset",
             "destination": destination.normalizedAddress,
             "sourceDex": sourceDex,
@@ -397,6 +407,8 @@ public actor ExchangeAPI {
             primaryType: .sendAsset,
             isMainnet: isMainnet
         )
+        action["signatureChainId"] = HyperliquidConstants.UserSignedDomain.signatureChainIdHex
+        action["hyperliquidChain"] = isMainnet ? "Mainnet" : "Testnet"
         return try await postAction(action: action, signature: signature, nonce: timestamp)
     }
 
@@ -493,6 +505,11 @@ public actor ExchangeAPI {
 
         let signature = try await signerType.signUserSigned(
             action: fullAction, signTypes: signTypes, primaryType: primaryType, isMainnet: isMainnet)
+
+        // Add signatureChainId and hyperliquidChain to action for API submission (matching Python SDK behavior)
+        fullAction["signatureChainId"] = HyperliquidConstants.UserSignedDomain.signatureChainIdHex
+        fullAction["hyperliquidChain"] = isMainnet ? "Mainnet" : "Testnet"
+
         return try await postAction(action: fullAction, signature: signature, nonce: timestamp)
     }
 
@@ -513,6 +530,8 @@ public actor ExchangeAPI {
             primaryType: .approveAgent,
             isMainnet: isMainnet
         )
+        action["signatureChainId"] = HyperliquidConstants.UserSignedDomain.signatureChainIdHex
+        action["hyperliquidChain"] = isMainnet ? "Mainnet" : "Testnet"
         return try await postAction(action: action, signature: signature, nonce: timestamp)
     }
 
@@ -612,6 +631,23 @@ public actor ExchangeAPI {
             ],
             signTypes: userDexAbstractionSignTypes,
             primaryType: .userDexAbstraction,
+            includeNonceInAction: true
+        )
+    }
+
+    public func agentSetAbstraction(abstraction: AgentAbstraction) async throws -> Data {
+        try await runAction(action: ["type": "agentSetAbstraction", "abstraction": abstraction.rawValue])
+    }
+
+    public func userSetAbstraction(user: String, abstraction: Abstraction) async throws -> Data {
+        try await runUserSignedAction(
+            action: [
+                "type": "userSetAbstraction",
+                "user": user.normalizedAddress,
+                "abstraction": abstraction.rawValue,
+            ],
+            signTypes: userSetAbstractionSignTypes,
+            primaryType: .userSetAbstraction,
             includeNonceInAction: true
         )
     }
@@ -896,7 +932,8 @@ public actor ExchangeAPI {
         builder: BuilderInfo? = nil
     ) async throws -> Data {
         let address = accountAddress ?? vaultAddress ?? signerType.address
-        let userState = try await infoAPI.userState(address: address)
+        let dex = getDex(coin)
+        let userState = try await infoAPI.userState(address: address, dex: dex)
         guard let position = userState.assetPositions.first(where: { $0.position.coin == coin }) else {
             throw HyperliquidError.invalidParameter("No position found for \(coin)")
         }
@@ -932,7 +969,8 @@ public actor ExchangeAPI {
         if let px {
             basePrice = px
         } else {
-            let mids = try await infoAPI.allMids()
+            let dex = getDex(coin)
+            let mids = try await infoAPI.allMids(dex: dex)
             let coinKey = await infoAPI.getCoin(for: coin) ?? coin
             guard let midString = mids[coinKey], let mid = Decimal(string: midString) else {
                 throw HyperliquidError.invalidParameter("No mid price for \(coin)")

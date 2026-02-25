@@ -138,6 +138,22 @@ public struct UserDexAbstractionState: Codable, Sendable {
     public let dex: String?
 }
 
+// MARK: - Abstraction Types
+
+/// User abstraction mode
+public enum Abstraction: String, Codable, Sendable {
+    case unifiedAccount
+    case portfolioMargin
+    case disabled
+}
+
+/// Agent abstraction mode
+public enum AgentAbstraction: String, Codable, Sendable {
+    case u
+    case p
+    case i
+}
+
 // MARK: - User Portfolio History
 
 /// Portfolio history data for a specific time period
